@@ -1,0 +1,6 @@
+tetris.gb
+tetris.map
+tetris.sym
+
+__pycache__/
+build/
