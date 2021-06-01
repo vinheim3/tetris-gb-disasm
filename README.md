@@ -20,9 +20,3 @@
 * `tools` - misc tools to help with disassembly
 * `web` - just the html+js in 1 file to visualise
 * `includes.s` - imported definitions, excluding those that need building, eg ram
-
-# Images
-![Tetris Flow](https://github.com/vinheim3/tetris-gb-disasm/raw/main/docs/tetris_flow.png)
-![Tetris Gfx 1](https://github.com/vinheim3/tetris-gb-disasm/raw/main/docs/tetris_gfx_1.png)
-![Tetris Gfx 2](https://github.com/vinheim3/tetris-gb-disasm/raw/main/docs/tetris_gfx_2.png)
-![Tetris Gfx 3](https://github.com/vinheim3/tetris-gb-disasm/raw/main/docs/tetris_gfx_3.png)
