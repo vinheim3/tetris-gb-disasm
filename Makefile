@@ -1,7 +1,6 @@
 OBJS = $(shell find code/ -name '*.s' | sed "s/code/build/" | sed "s/\.s/\.o/")
-# todo: how to make 1bpp pngs
-# GFX_1BPP_OBJS = $(shell find gfx/1bpp/ -name '*.png' | sed "s/gfx\/1bpp/build/" | sed "s/.png/.1bpp/")
-GFX_1BPP_OBJS = $(shell find gfx/1bpp/ -name '*.1bpp' | sed "s/gfx\/1bpp/build/" | sed "s/.1bpp/.1bpp/")
+
+GFX_1BPP_OBJS = $(shell find gfx/1bpp/ -name '*.png' | sed "s/gfx\/1bpp/build/" | sed "s/.png/.1bpp/")
 GFX_2BPP_OBJS = $(shell find gfx/2bpp/ -name '*.png' | sed "s/gfx\/2bpp/build/" | sed "s/.png/.2bpp/")
 OUTFILES = -n tetris.sym -m tetris.map
 
@@ -16,11 +15,8 @@ build//menuScreens.2bpp: gfx//2bpp//menuScreens.png
 build/%.2bpp: gfx/2bpp/%.png
 	rgbgfx -o $@ $<
 
-#build/%.1bpp: gfx/1bpp/%.png
-#	rgbgfx -d 1 -o $@ $<
-
-build/%.1bpp: gfx/1bpp/%.1bpp
-	cp $< $@
+build/%.1bpp: gfx/1bpp/%.png
+	rgbgfx -d 1 -o $@ $<
 
 build/wram.o: include/wram.s
 	rgbasm -h -L -o $@ $<
