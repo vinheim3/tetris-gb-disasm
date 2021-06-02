@@ -33,7 +33,7 @@ for line in relevantLines:
 
     nl = x.group(2)
     addr = x.group(3)
-    len_gap = max(1, 60-len(nl))
+    len_gap = max(1, 65-len(nl))
 
     newLine = nl + ' '*len_gap + addr
     if line == newLine:
