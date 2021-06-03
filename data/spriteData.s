@@ -137,7 +137,7 @@ jr_000_2c33:
 	ldh  a, [hMultiplayerPlayerRole]                                    ; $2c3b: $f0 $cb
 	dec  l                                           ; $2c3d: $2d
 	RST_JumpTable                                         ; $2c3e: $ef
-	ldh  a, [$dc]                                    ; $2c3f: $f0 $dc
+	ldh  a, [h2toThePowerOf_LinesClearedMinus1]                                    ; $2c3f: $f0 $dc
 	dec  l                                           ; $2c41: $2d
 	RST_JumpTable                                         ; $2c42: $ef
 	ldh  a, [hAddressOfDemoInput]                                    ; $2c43: $f0 $eb
@@ -990,7 +990,7 @@ jr_000_2fb4:
 
 
 	ld   sp, $fdf0                                   ; $309f: $31 $f0 $fd
-	ldh  a, [$f1]                                    ; $30a2: $f0 $f1
+	ldh  a, [hPausedNextSerialByteToLoad]                                    ; $30a2: $f0 $f1
 	db   $fd                                         ; $30a4: $fd
 	pop  af                                          ; $30a5: $f1
 	rst  $38                                         ; $30a6: $ff
@@ -998,7 +998,7 @@ jr_000_2fb4:
 
 
 	ld   sp, $fddc                                   ; $30a8: $31 $dc $fd
-	ldh  a, [$f1]                                    ; $30ab: $f0 $f1
+	ldh  a, [hPausedNextSerialByteToLoad]                                    ; $30ab: $f0 $f1
 	db   $fd                                         ; $30ad: $fd
 	RST_JumpTable                                         ; $30ae: $ef
 	rst  $38                                         ; $30af: $ff

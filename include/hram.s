@@ -165,7 +165,7 @@ h2PlayerAddressOfNextPiece:: ; $ffaf
 
     endu
 
-hffb1:
+hNumRowsUpOurTetrisPiecesAre:: ; $ffb1
     db
 
 hCurrPieceSquarePixelY:: ; $ffb2
@@ -211,6 +211,11 @@ hTimerMultiplier:: ; $ffc6
 hTypedLetterCounter:: ; $ffc6
     db
 
+    nextu
+
+h5GamesFinishedTimer:: ; $ffc6
+    db
+
     endu
 
 hMustEnterHighScore:: ; $ffc7
@@ -242,8 +247,21 @@ hNextSerialByteToLoad:: ; $ffcf
 hSerialByteRead:: ; $ffd0
     db
 
-hffd1:
-    ds 6-1
+hOppositeSerialByteToWinningLosingState:: ; $ffd1
+    db
+
+h2toThePowerOf_OtherPlayersLinesClearedMinus1:: ; $ffd2
+    db
+
+; bit 7 set when current player has played their next piece
+hOtherPlayersMultiplierToProcess:: ; $ffd3
+    db
+
+hCurrPlayersRowsShiftedUpDueToOtherPlayer:: ; $ffd4
+    db
+
+hCurrPlayerJustFinishedRequiredLines:: ; $ffd5
+    db
 
 h2PlayerGameFinished:: ; $ffd6
     db
@@ -263,8 +281,11 @@ hOtherIsAdvantage:: ; $ffda
 hIsDeuce:: ; $ffdb
     db
 
-hffdc:
-    ds $e0-$dc
+h2toThePowerOf_LinesClearedMinus1:: ; $ffdc
+    db
+
+hffdd:
+    ds $e0-$dd
 
 hFoundDisplayableScoreDigit:: ; $ffe0
     db
@@ -311,19 +332,17 @@ hDemoButtonsHeld:: ; $ffed
 hActualUserButtonsHeldDuringDemo:: ; $ffee
     db
 
-; cleared after winner/loser screen
-; set at some point in game state 1a and 1b
-; if 0, inc winning/losing score after a game
-; if non-0, hide baby mario/luigi
-; if 0, process deuce/advantage logic
-hffef:
-    ds $f0-$ef
+hWonOrLostAtTheSameTimeAsOtherPlayer:: ; $ffef
+    db
 
 hPassiveShouldUpdateMusicOamAndPlaySong:: ; $fff0
     db
 
-hfff1:
-    ds 3-1
+hPausedNextSerialByteToLoad:: ; $fff1
+    db
+
+hPausedSerialByteRead:: ; $fff2
+    db
 
 hATypeRocketSpecIdx:: ; $fff3
     db

@@ -2,13 +2,13 @@
 
 
 ; file          | done | remaining
-; bank_000      |  952 |  84 (multiplayer)
+; bank_000      | 1033 |   0
 ; BType         |  257 |   0
 ; gfx           |  428 |   0
-; inGameFlow    |  811 |  36 (multiplayer, [d3], [dc])
+; inGameFlow    |  847 |   0
 ; introScreens  |  219 |   0
 ; menuScreens   |  785 |   0
-; multiplayer   |  977 | 516 (various)
+; multiplayer   | 1493 |   0
 ; shuttleRocket |  349 |   0
 ; soundEngine   | 1101 |   0
-; total         | 5879 | 636 | 90.2%
+; total         | 6512 |   0

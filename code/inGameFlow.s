@@ -47,14 +47,14 @@ PlayNextPieceLoadNextAndHiddenPiece:
     ld   a, l                                                    ; $2033
     ldh  [hLowByteOfCurrDemoStepAddress], a                      ; $2034
 
-;
-    ldh  a, [$d3]                                    ; $2036: $f0 $d3
-    and  a                                           ; $2038: $a7
-    jr   z, .skipDIV                              ; $2039: $28 $2a
+; with piece played, set bit 7 of this var
+    ldh  a, [hOtherPlayersMultiplierToProcess]                   ; $2036
+    and  a                                                       ; $2038
+    jr   z, .skipDIV                                             ; $2039
 
-    or   $80                                         ; $203b: $f6 $80
-    ldh  [$d3], a                                    ; $203d: $e0 $d3
-    jr   .skipDIV                                 ; $203f: $18 $24
+    or   $80                                                     ; $203b
+    ldh  [hOtherPlayersMultiplierToProcess], a                   ; $203d
+    jr   .skipDIV                                                ; $203f
 
 .only1player:
 ; try 3 times to gen a new random piece
@@ -443,10 +443,11 @@ InGameCheckIfAnyTetrisRowsComplete:
 
 .end:
 ; inc its counter
-    inc  [hl]                                                  ; $21cf
+    inc  [hl]                                                    ; $21cf
 
-    ld   a, b                                        ; $21d0: $78
-    ldh  [$dc], a                                    ; $21d1: $e0 $dc
+; store B
+    ld   a, b                                                    ; $21d0
+    ldh  [h2toThePowerOf_LinesClearedMinus1], a                  ; $21d1
 
 ; and play relevant sound
     ld   a, c                                                    ; $21d3
@@ -748,32 +749,34 @@ CopyRamBufferRow11ToVram:
     ld   de, wGameScreenBuffer+GB_TILE_WIDTH*11+2                ; $2300
     call CopyRamBufferRowToVram                                  ; $2303
 
-;
-    ldh  a, [hIs2Player]                                    ; $2306: $f0 $c5
-    and  a                                           ; $2308: $a7
-    ldh  a, [hGameState]                                    ; $2309: $f0 $e1
-    jr   nz, .is2Player                             ; $230b: $20 $08
+; check if still in-game
+    ldh  a, [hIs2Player]                                         ; $2306
+    and  a                                                       ; $2308
+    ldh  a, [hGameState]                                         ; $2309
+    jr   nz, .is2Player                                          ; $230b
 
 ; ret if 1 player and not in-game
-    and  a                                           ; $230d: $a7
-    ret  nz                                          ; $230e: $c0
+    and  a                                                       ; $230d
+    ret  nz                                                      ; $230e
 
 .loop:
-    ld   a, NOISE_TETRIS_ROWS_FELL                                      ; $230f: $3e $01
-    ld   [wNoiseSoundToPlay], a                                  ; $2311: $ea $f8 $df
-    ret                                              ; $2314: $c9
+    ld   a, NOISE_TETRIS_ROWS_FELL                               ; $230f
+    ld   [wNoiseSoundToPlay], a                                  ; $2311
+    ret                                                          ; $2314
 
 .is2Player:
-    cp   GS_2PLAYER_IN_GAME_MAIN                                         ; $2315: $fe $1a
-    ret  nz                                          ; $2317: $c0
+; ret if not in-game
+    cp   GS_2PLAYER_IN_GAME_MAIN                                 ; $2315
+    ret  nz                                                      ; $2317
 
-    ldh  a, [$d4]                                    ; $2318: $f0 $d4
-    and  a                                           ; $231a: $a7
-    jr   z, .loop                              ; $231b: $28 $f2
+; if our rows moved up, play sound
+    ldh  a, [hCurrPlayersRowsShiftedUpDueToOtherPlayer]          ; $2318
+    and  a                                                       ; $231a
+    jr   z, .loop                                                ; $231b
 
-    ld   a, SND_TETRIS_ROWS_FELL                                      ; $231d: $3e $05
-    ld   [wSquareSoundToPlay], a                                  ; $231f: $ea $e0 $df
-    ret                                              ; $2322: $c9
+    ld   a, SND_TETRIS_ROWS_FELL                                 ; $231d
+    ld   [wSquareSoundToPlay], a                                 ; $231f
+    ret                                                          ; $2322
 
 
 CopyRamBufferRow10ToVram:
@@ -953,7 +956,7 @@ CopyRamBufferRow0ToVram:
     and  a                                                       ; $240a
     jr   nz, .playNextPiece                                      ; $240b
 
-; set timer, and play song
+; if B type level now done, set timer, and play song
     ld   a, $64                                                  ; $240d
     ldh  [hTimer1], a                                            ; $240f
 
@@ -965,9 +968,9 @@ CopyRamBufferRow0ToVram:
     and  a                                                       ; $2418
     jr   z, .is1playerEnd                                        ; $2419
 
-; is 2 player
-    ldh  [$d5], a                                    ; $241b: $e0 $d5
-    ret                                              ; $241d: $c9
+; if 2 player, set that we finished the level
+    ldh  [hCurrPlayerJustFinishedRequiredLines], a               ; $241b
+    ret                                                          ; $241d
 
 .is1playerEnd:
 ; set game state based on if max level
@@ -987,16 +990,18 @@ CopyRamBufferRow0ToVram:
     ret                                                          ; $242e
 
 .is2player:
-    cp   GS_2PLAYER_IN_GAME_MAIN                                         ; $242f: $fe $1a
-    ret  nz                                          ; $2431: $c0
+; ret if not in-game
+    cp   GS_2PLAYER_IN_GAME_MAIN                                 ; $242f
+    ret  nz                                                      ; $2431
 
-    ldh  a, [$d4]                                    ; $2432: $f0 $d4
-    and  a                                           ; $2434: $a7
-    jr   z, .getLinesToDisplay                              ; $2435: $28 $b2
+; if our rows shifted up, unset that
+    ldh  a, [hCurrPlayersRowsShiftedUpDueToOtherPlayer]          ; $2432
+    and  a                                                       ; $2434
+    jr   z, .getLinesToDisplay                                   ; $2435
 
-    xor  a                                           ; $2437: $af
-    ldh  [$d4], a                                    ; $2438: $e0 $d4
-    ret                                              ; $243a: $c9
+    xor  a                                                       ; $2437
+    ldh  [hCurrPlayersRowsShiftedUpDueToOtherPlayer], a          ; $2438
+    ret                                                          ; $243a
     
 
 DisplayGameATypeScoreIfInGameAndForced:

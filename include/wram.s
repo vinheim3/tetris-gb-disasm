@@ -55,8 +55,8 @@ wDemoOrMultiplayerPieces:: ; $c300
     ds $100 ; actually $30 in size
 .end::
 
-wc400:
-    ds $800-$400
+wDarkSolidBlocksUnderRandomBlocks:: ; $c400
+    ds $800-$400 ; unknown size
 
 ; contains screen contents pre-effect,
 ; eg orig tile idxes when flashing completed rows

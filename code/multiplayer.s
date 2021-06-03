@@ -22,16 +22,16 @@ GameState2a_2PlayerGameMusicTypeInit:
     ld   [wSpriteSpecs+SPR_SPEC_SIZEOF], a                       ; $05d6
     call Copy2SpriteSpecsToShadowOam                             ; $05d9
 
-;
-    ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $05dc: $e0 $ce
-    xor  a                                           ; $05de: $af
-    ldh  [rSB], a                                    ; $05df: $e0 $01
-    ldh  [hNextSerialByteToLoad], a                                    ; $05e1: $e0 $cf
-    ldh  [$dc], a                                    ; $05e3: $e0 $dc
-    ldh  [$d2], a                                    ; $05e5: $e0 $d2
-    ldh  [$d3], a                                    ; $05e7: $e0 $d3
-    ldh  [$d4], a                                    ; $05e9: $e0 $d4
-    ldh  [$d5], a                                    ; $05eb: $e0 $d5
+; clear some vars and init sound
+    ldh  [hMasterShouldSerialTransferInVBlank], a                ; $05dc
+    xor  a                                                       ; $05de
+    ldh  [rSB], a                                                ; $05df
+    ldh  [hNextSerialByteToLoad], a                              ; $05e1
+    ldh  [h2toThePowerOf_LinesClearedMinus1], a                  ; $05e3
+    ldh  [h2toThePowerOf_OtherPlayersLinesClearedMinus1], a      ; $05e5
+    ldh  [hOtherPlayersMultiplierToProcess], a                   ; $05e7
+    ldh  [hCurrPlayersRowsShiftedUpDueToOtherPlayer], a          ; $05e9
+    ldh  [hCurrPlayerJustFinishedRequiredLines], a               ; $05eb
     ldh  [hRowsShiftingDownState], a                             ; $05ed
     call ThunkInitSound                                          ; $05ef
 
@@ -192,29 +192,29 @@ GameState16_MarioLuigiScreenInit:
     ld   a, TILE_EMPTY                                           ; $06a5
     call FillGameScreenBufferWithTileA                           ; $06a7
 
-;
-    ld   a, $03                                      ; $06aa: $3e $03
-    ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $06ac: $e0 $ce
-    xor  a                                           ; $06ae: $af
-    ldh  [rSB], a                                    ; $06af: $e0 $01
-    ldh  [hNextSerialByteToLoad], a                                    ; $06b1: $e0 $cf
-    ldh  [$dc], a                                    ; $06b3: $e0 $dc
-    ldh  [$d2], a                                    ; $06b5: $e0 $d2
-    ldh  [$d3], a                                    ; $06b7: $e0 $d3
-    ldh  [$d4], a                                    ; $06b9: $e0 $d4
-    ldh  [$d5], a                                    ; $06bb: $e0 $d5
-    ldh  [hRowsShiftingDownState], a                                    ; $06bd: $e0 $e3
-    ldh  [hSerialInterruptHandled], a                                    ; $06bf: $e0 $cc
+; have master transfer in vblank, then clear some vars
+    ld   a, $03                                                  ; $06aa
+    ldh  [hMasterShouldSerialTransferInVBlank], a                ; $06ac
+    xor  a                                                       ; $06ae
+    ldh  [rSB], a                                                ; $06af
+    ldh  [hNextSerialByteToLoad], a                              ; $06b1
+    ldh  [h2toThePowerOf_LinesClearedMinus1], a                  ; $06b3
+    ldh  [h2toThePowerOf_OtherPlayersLinesClearedMinus1], a      ; $06b5
+    ldh  [hOtherPlayersMultiplierToProcess], a                   ; $06b7
+    ldh  [hCurrPlayersRowsShiftedUpDueToOtherPlayer], a          ; $06b9
+    ldh  [hCurrPlayerJustFinishedRequiredLines], a               ; $06bb
+    ldh  [hRowsShiftingDownState], a                             ; $06bd
+    ldh  [hSerialInterruptHandled], a                            ; $06bf
 
-;
-    ld   hl, $c400                                   ; $06c1: $21 $00 $c4
-    ld   b, $0a                                      ; $06c4: $06 $0a
-    ld   a, $28                                      ; $06c6: $3e $28
+; load a row of dark solid blocks to act as hard floor under the last of random blocks
+    ld   hl, wDarkSolidBlocksUnderRandomBlocks                   ; $06c1
+    ld   b, GAME_SQUARE_WIDTH                                    ; $06c4
+    ld   a, TILE_DARK_SOLID_BLOCK                                ; $06c6
 
-jr_000_06c8:
-    ld   [hl+], a                                    ; $06c8: $22
-    dec  b                                           ; $06c9: $05
-    jr   nz, jr_000_06c8                             ; $06ca: $20 $fc
+.copyDarkSolid:
+    ld   [hl+], a                                                ; $06c8
+    dec  b                                                       ; $06c9
+    jr   nz, .copyDarkSolid                                      ; $06ca
 
 ; if a game already finished, skip to in game init
     ldh  a, [h2PlayerGameFinished]                               ; $06cc
@@ -501,7 +501,7 @@ GameState18_2PlayerInGameInit:
     ldh  [hMasterShouldSerialTransferInVBlank], a                ; $083a
     ldh  [hSerialByteRead], a                                    ; $083c
     ldh  [hNextSerialByteToLoad], a                              ; $083e
-    ldh  [$d1], a                                    ; $0840: $e0 $d1
+    ldh  [hOppositeSerialByteToWinningLosingState], a            ; $0840
 
 ; clear score vars, completed rows pointer, and fill bottom of tile map with empty tils
     call ClearScoreCategoryVarsAndTotalScore                     ; $0842
@@ -1110,443 +1110,546 @@ GameState1c_2PlayerSyncAtInGameInitEnd:
     ret                                                          ; $0b01
 
 .rowsNotYetLoaded:
-    cp   $05                                         ; $0b02: $fe $05
-    ret  nz                                          ; $0b04: $c0
+    cp   $05                                                     ; $0b02
+    ret  nz                                                      ; $0b04
 
-; now at 5th row being loaded,
-    ld   hl, wOam+OAM_SIZEOF*12                                   ; $0b05: $21 $30 $c0
-    ld   b, $12                                      ; $0b08: $06 $12
+; now at 5th row being loaded, hide all left side line markings
+    ld   hl, wOam+OAM_SIZEOF*12                                  ; $0b05
+    ld   b, $12                                                  ; $0b08
 
-jr_000_0b0a:
-    ld   [hl], $f0                                   ; $0b0a: $36 $f0
-    inc  hl                                          ; $0b0c: $23
-    ld   [hl], $10                                   ; $0b0d: $36 $10
-    inc  hl                                          ; $0b0f: $23
-    ld   [hl], $b6                                   ; $0b10: $36 $b6
-    inc  hl                                          ; $0b12: $23
-    ld   [hl], $80                                   ; $0b13: $36 $80
-    inc  hl                                          ; $0b15: $23
-    dec  b                                           ; $0b16: $05
-    jr   nz, jr_000_0b0a                             ; $0b17: $20 $f1
+.loopWallMarkings:
+    ld   [hl], $f0                                               ; $0b0a
+    inc  hl                                                      ; $0b0c
+    ld   [hl], $10                                               ; $0b0d
+    inc  hl                                                      ; $0b0f
+    ld   [hl], TILE_2_PLAYER_LINE_MARKING                        ; $0b10
+    inc  hl                                                      ; $0b12
+    ld   [hl], $80                                               ; $0b13
+    inc  hl                                                      ; $0b15
+    dec  b                                                       ; $0b16
+    jr   nz, .loopWallMarkings                                   ; $0b17
 
-;
-    ld   a, [$c3ff]                                  ; $0b19: $fa $ff $c3
+; get value between 0 and $18
+    ld   a, [wDemoOrMultiplayerPieces.end-1]                     ; $0b19
 
-jr_000_0b1c:
-    ld   b, $0a                                      ; $0b1c: $06 $0a
-    ld   hl, $c400                                   ; $0b1e: $21 $00 $c4
+; l += A % 10, ie put an empty tile in the dark solid blocks
+.loopUntilBequ0:
+    ld   b, $0a                                                  ; $0b1c
+    ld   hl, wDarkSolidBlocksUnderRandomBlocks                   ; $0b1e
 
-jr_000_0b21:
-    dec  a                                           ; $0b21: $3d
-    jr   z, jr_000_0b2a                              ; $0b22: $28 $06
+.nextB:
+    dec  a                                                       ; $0b21
+    jr   z, .done                                                ; $0b22
 
-    inc  l                                           ; $0b24: $2c
-    dec  b                                           ; $0b25: $05
-    jr   nz, jr_000_0b21                             ; $0b26: $20 $f9
+    inc  l                                                       ; $0b24
+    dec  b                                                       ; $0b25
+    jr   nz, .nextB                                              ; $0b26
 
-    jr   jr_000_0b1c                                 ; $0b28: $18 $f2
+    jr   .loopUntilBequ0                                         ; $0b28
 
-jr_000_0b2a:
-    ld   [hl], $2f                                   ; $0b2a: $36 $2f
-    ld   a, $03                                      ; $0b2c: $3e $03
-    ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $0b2e: $e0 $ce
-    ret                                              ; $0b30: $c9
+.done:
+    ld   [hl], TILE_EMPTY                                        ; $0b2a
+
+; transfer in vblank
+    ld   a, $03                                                  ; $0b2c
+    ldh  [hMasterShouldSerialTransferInVBlank], a                ; $0b2e
+    ret                                                          ; $0b30
 
 
 GameState1a_2PlayerInGameMain:
-    ld   a, $01                                      ; $0b31: $3e $01
-    ldh  [rIE], a                                    ; $0b33: $e0 $ff
-    ld   hl, $c09c                                   ; $0b35: $21 $9c $c0
-    xor  a                                           ; $0b38: $af
-    ld   [hl+], a                                    ; $0b39: $22
-    ld   [hl], $50                                   ; $0b3a: $36 $50
-    inc  l                                           ; $0b3c: $2c
-    ld   [hl], $27                                   ; $0b3d: $36 $27
-    inc  l                                           ; $0b3f: $2c
-    ld   [hl], $00                                   ; $0b40: $36 $00
-    call InGameCheckResetAndPause.start                               ; $0b42: $cd $0d $1c
-    call Call_000_1c88                               ; $0b45: $cd $88 $1c
-    call InGameCheckButtonsPressed                               ; $0b48: $cd $bb $24
-    call InGameHandlePieceFalling.start                               ; $0b4b: $cd $9c $20
-    call InGameCheckIfAnyTetrisRowsComplete                               ; $0b4e: $cd $3e $21
-    call InGameAddPieceToVram                               ; $0b51: $cd $a1 $25
-    call ShiftEntireGameRamBufferDownARow                               ; $0b54: $cd $4d $22
-    call Call_000_0b9b                               ; $0b57: $cd $9b $0b
-    ldh  a, [$d5]                                    ; $0b5a: $f0 $d5
-    and  a                                           ; $0b5c: $a7
-    jr   z, jr_000_0b73                              ; $0b5d: $28 $14
-
-    ld   a, $77                                      ; $0b5f: $3e $77
-    ldh  [hNextSerialByteToLoad], a                                    ; $0b61: $e0 $cf
-    ldh  [$b1], a                                    ; $0b63: $e0 $b1
-    ld   a, $aa                                      ; $0b65: $3e $aa
-    ldh  [$d1], a                                    ; $0b67: $e0 $d1
-    ld   a, GS_1b                                      ; $0b69: $3e $1b
-    ldh  [hGameState], a                                    ; $0b6b: $e0 $e1
-    ld   a, $05                                      ; $0b6d: $3e $05
-    ldh  [hTimer2], a                                    ; $0b6f: $e0 $a7
-    jr   jr_000_0b83                                 ; $0b71: $18 $10
-
-jr_000_0b73:
-    ldh  a, [hGameState]                                    ; $0b73: $f0 $e1
-    cp   GS_GAME_OVER_INIT                                         ; $0b75: $fe $01
-    jr   nz, jr_000_0b94                             ; $0b77: $20 $1b
-
-    ld   a, $aa                                      ; $0b79: $3e $aa
-    ldh  [hNextSerialByteToLoad], a                                    ; $0b7b: $e0 $cf
-    ldh  [$b1], a                                    ; $0b7d: $e0 $b1
-    ld   a, $77                                      ; $0b7f: $3e $77
-    ldh  [$d1], a                                    ; $0b81: $e0 $d1
-
-jr_000_0b83:
-    xor  a                                           ; $0b83: $af
-    ldh  [$dc], a                                    ; $0b84: $e0 $dc
-    ldh  [$d2], a                                    ; $0b86: $e0 $d2
-    ldh  [$d3], a                                    ; $0b88: $e0 $d3
-    ldh  [$d4], a                                    ; $0b8a: $e0 $d4
-    ldh  a, [hMultiplayerPlayerRole]                                    ; $0b8c: $f0 $cb
-    cp   MP_ROLE_MASTER                                         ; $0b8e: $fe $29
-    jr   nz, jr_000_0b94                             ; $0b90: $20 $02
-
-    ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $0b92: $e0 $ce
-
-jr_000_0b94:
-    call Call_000_0bf0                               ; $0b94: $cd $f0 $0b
-    call Call_000_0c8c                               ; $0b97: $cd $8c $0c
-    ret                                              ; $0b9a: $c9
-
-
-Call_000_0b9b:
-    ld   de, $0020                                   ; $0b9b: $11 $20 $00
-    ld   hl, $c802                                   ; $0b9e: $21 $02 $c8
-    ld   a, $2f                                      ; $0ba1: $3e $2f
-    ld   c, $12                                      ; $0ba3: $0e $12
-
-jr_000_0ba5:
-    ld   b, $0a                                      ; $0ba5: $06 $0a
-    push hl                                          ; $0ba7: $e5
-
-jr_000_0ba8:
-    cp   [hl]                                        ; $0ba8: $be
-    jr   nz, jr_000_0bb5                             ; $0ba9: $20 $0a
-
-    inc  hl                                          ; $0bab: $23
-    dec  b                                           ; $0bac: $05
-    jr   nz, jr_000_0ba8                             ; $0bad: $20 $f9
-
-    pop  hl                                          ; $0baf: $e1
-    add  hl, de                                      ; $0bb0: $19
-    dec  c                                           ; $0bb1: $0d
-    jr   nz, jr_000_0ba5                             ; $0bb2: $20 $f1
-
-    push hl                                          ; $0bb4: $e5
-
-jr_000_0bb5:
-    pop  hl                                          ; $0bb5: $e1
-    ld   a, c                                        ; $0bb6: $79
-    ldh  [$b1], a                                    ; $0bb7: $e0 $b1
-    cp   $0c                                         ; $0bb9: $fe $0c
-    ld   a, [wSongBeingPlayed]                                  ; $0bbb: $fa $e9 $df
-    jr   nc, jr_000_0bc7                             ; $0bbe: $30 $07
-
-    cp   $08                                         ; $0bc0: $fe $08
-    ret  nz                                          ; $0bc2: $c0
-
-    call PlaySongBasedOnMusicTypeChosen                               ; $0bc3: $cd $17 $15
-    ret                                              ; $0bc6: $c9
-
-jr_000_0bc7:
-    cp   $08                                         ; $0bc7: $fe $08
-    ret  z                                           ; $0bc9: $c8
-
-    ld   a, [wWavSoundToPlay]                                  ; $0bca: $fa $f0 $df
-    cp   WAV_GAME_OVER                                         ; $0bcd: $fe $02
-    ret  z                                           ; $0bcf: $c8
-
-    ld   a, MUS_08                                      ; $0bd0: $3e $08
-    ld   [wSongToStart], a                                  ; $0bd2: $ea $e8 $df
-    ret                                              ; $0bd5: $c9
-
-jr_000_0bd6:
-    ldh  a, [hMultiplayerPlayerRole]                                    ; $0bd6: $f0 $cb
-    cp   MP_ROLE_MASTER                                         ; $0bd8: $fe $29
-    jr   z, jr_000_0c2e                              ; $0bda: $28 $52
-
-    ld   a, $01                                      ; $0bdc: $3e $01
-    ld   [wGamePausedActivity], a                                  ; $0bde: $ea $7f $df
-    ldh  [hGamePaused], a                                    ; $0be1: $e0 $ab
-    ldh  a, [hNextSerialByteToLoad]                                    ; $0be3: $f0 $cf
-    ldh  [$f1], a                                    ; $0be5: $e0 $f1
-    xor  a                                           ; $0be7: $af
-    ldh  [$f2], a                                    ; $0be8: $e0 $f2
-    ldh  [hNextSerialByteToLoad], a                                    ; $0bea: $e0 $cf
-    call Call_000_1ccb                               ; $0bec: $cd $cb $1c
-    ret                                              ; $0bef: $c9
-
-
-Call_000_0bf0:
-    ldh  a, [hSerialInterruptHandled]                                    ; $0bf0: $f0 $cc
-    and  a                                           ; $0bf2: $a7
-    ret  z                                           ; $0bf3: $c8
-
-    ld   hl, $c030                                   ; $0bf4: $21 $30 $c0
-    ld   de, $0004                                   ; $0bf7: $11 $04 $00
-    xor  a                                           ; $0bfa: $af
-    ldh  [hSerialInterruptHandled], a                                    ; $0bfb: $e0 $cc
-    ldh  a, [hSerialByteRead]                                    ; $0bfd: $f0 $d0
-    cp   $aa                                         ; $0bff: $fe $aa
-    jr   z, jr_000_0c64                              ; $0c01: $28 $61
-
-    cp   $77                                         ; $0c03: $fe $77
-    jr   z, jr_000_0c50                              ; $0c05: $28 $49
-
-    cp   $94                                         ; $0c07: $fe $94
-    jr   z, jr_000_0bd6                              ; $0c09: $28 $cb
-
-    ld   b, a                                        ; $0c0b: $47
-    and  a                                           ; $0c0c: $a7
-    jr   z, jr_000_0c60                              ; $0c0d: $28 $51
-
-    bit  7, a                                        ; $0c0f: $cb $7f
-    jr   nz, jr_000_0c82                             ; $0c11: $20 $6f
-
-    cp   $13                                         ; $0c13: $fe $13
-    jr   nc, jr_000_0c2e                             ; $0c15: $30 $17
-
-    ld   a, $12                                      ; $0c17: $3e $12
-    sub  b                                           ; $0c19: $90
-    ld   c, a                                        ; $0c1a: $4f
-    inc  c                                           ; $0c1b: $0c
-
-jr_000_0c1c:
-    ld   a, $98                                      ; $0c1c: $3e $98
-
-jr_000_0c1e:
-    ld   [hl], a                                     ; $0c1e: $77
-    add  hl, de                                      ; $0c1f: $19
-    sub  $08                                         ; $0c20: $d6 $08
-    dec  b                                           ; $0c22: $05
-    jr   nz, jr_000_0c1e                             ; $0c23: $20 $f9
-
-jr_000_0c25:
-    ld   a, $f0                                      ; $0c25: $3e $f0
-
-jr_000_0c27:
-    dec  c                                           ; $0c27: $0d
-    jr   z, jr_000_0c2e                              ; $0c28: $28 $04
-
-    ld   [hl], a                                     ; $0c2a: $77
-    add  hl, de                                      ; $0c2b: $19
-    jr   jr_000_0c27                                 ; $0c2c: $18 $f9
-
-jr_000_0c2e:
-    ldh  a, [$dc]                                    ; $0c2e: $f0 $dc
-    and  a                                           ; $0c30: $a7
-    jr   z, jr_000_0c3a                              ; $0c31: $28 $07
-
-    or   $80                                         ; $0c33: $f6 $80
-    ldh  [$b1], a                                    ; $0c35: $e0 $b1
-    xor  a                                           ; $0c37: $af
-    ldh  [$dc], a                                    ; $0c38: $e0 $dc
-
-jr_000_0c3a:
-    ld   a, $ff                                      ; $0c3a: $3e $ff
-    ldh  [hSerialByteRead], a                                    ; $0c3c: $e0 $d0
-    ldh  a, [hMultiplayerPlayerRole]                                    ; $0c3e: $f0 $cb
-    cp   MP_ROLE_MASTER                                         ; $0c40: $fe $29
-    ldh  a, [$b1]                                    ; $0c42: $f0 $b1
-    jr   nz, jr_000_0c4d                             ; $0c44: $20 $07
-
-    ldh  [hNextSerialByteToLoad], a                                    ; $0c46: $e0 $cf
-    ld   a, $01                                      ; $0c48: $3e $01
-    ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $0c4a: $e0 $ce
-    ret                                              ; $0c4c: $c9
-
-jr_000_0c4d:
-    ldh  [hNextSerialByteToLoad], a                                    ; $0c4d: $e0 $cf
-    ret                                              ; $0c4f: $c9
-
-jr_000_0c50:
-    ldh  a, [$d1]                                    ; $0c50: $f0 $d1
-    cp   $aa                                         ; $0c52: $fe $aa
-    jr   z, jr_000_0c7c                              ; $0c54: $28 $26
-
-    ld   a, $77                                      ; $0c56: $3e $77
-    ldh  [$d1], a                                    ; $0c58: $e0 $d1
-    ld   a, GS_GAME_OVER_INIT                                      ; $0c5a: $3e $01
-    ldh  [hGameState], a                                    ; $0c5c: $e0 $e1
-    jr   jr_000_0c2e                                 ; $0c5e: $18 $ce
-
-jr_000_0c60:
-    ld   c, $13                                      ; $0c60: $0e $13
-    jr   jr_000_0c25                                 ; $0c62: $18 $c1
-
-jr_000_0c64:
-    ldh  a, [$d1]                                    ; $0c64: $f0 $d1
-    cp   $77                                         ; $0c66: $fe $77
-    jr   z, jr_000_0c7c                              ; $0c68: $28 $12
-
-    ld   a, $aa                                      ; $0c6a: $3e $aa
-    ldh  [$d1], a                                    ; $0c6c: $e0 $d1
-    ld   a, GS_1b                                      ; $0c6e: $3e $1b
-    ldh  [hGameState], a                                    ; $0c70: $e0 $e1
-    ld   a, $05                                      ; $0c72: $3e $05
-    ldh  [hTimer2], a                                    ; $0c74: $e0 $a7
-    ld   c, $01                                      ; $0c76: $0e $01
-    ld   b, $12                                      ; $0c78: $06 $12
-    jr   jr_000_0c1c                                 ; $0c7a: $18 $a0
-
-jr_000_0c7c:
-    ld   a, $01                                      ; $0c7c: $3e $01
-    ldh  [$ef], a                                    ; $0c7e: $e0 $ef
-    jr   jr_000_0c2e                                 ; $0c80: $18 $ac
-
-jr_000_0c82:
-    and  $7f                                         ; $0c82: $e6 $7f
-    cp   $05                                         ; $0c84: $fe $05
-    jr   nc, jr_000_0c2e                             ; $0c86: $30 $a6
-
-    ldh  [$d2], a                                    ; $0c88: $e0 $d2
-    jr   jr_000_0c3a                                 ; $0c8a: $18 $ae
-
-
-Call_000_0c8c:
-    ldh  a, [$d3]                                    ; $0c8c: $f0 $d3
-    and  a                                           ; $0c8e: $a7
-    jr   z, jr_000_0c98                              ; $0c8f: $28 $07
-
-    bit  7, a                                        ; $0c91: $cb $7f
-    ret  z                                           ; $0c93: $c8
-
-    and  $07                                         ; $0c94: $e6 $07
-    jr   jr_000_0ca2                                 ; $0c96: $18 $0a
-
-jr_000_0c98:
-    ldh  a, [$d2]                                    ; $0c98: $f0 $d2
-    and  a                                           ; $0c9a: $a7
-    ret  z                                           ; $0c9b: $c8
-
-    ldh  [$d3], a                                    ; $0c9c: $e0 $d3
-    xor  a                                           ; $0c9e: $af
-    ldh  [$d2], a                                    ; $0c9f: $e0 $d2
-    ret                                              ; $0ca1: $c9
-
-
-jr_000_0ca2:
-    ld   c, a                                        ; $0ca2: $4f
-    push bc                                          ; $0ca3: $c5
-    ld   hl, $c822                                   ; $0ca4: $21 $22 $c8
-    ld   de, $ffe0                                   ; $0ca7: $11 $e0 $ff
-
-jr_000_0caa:
-    add  hl, de                                      ; $0caa: $19
-    dec  c                                           ; $0cab: $0d
-    jr   nz, jr_000_0caa                             ; $0cac: $20 $fc
-
-    ld   de, $c822                                   ; $0cae: $11 $22 $c8
-    ld   c, $11                                      ; $0cb1: $0e $11
-
-jr_000_0cb3:
-    ld   b, $0a                                      ; $0cb3: $06 $0a
-
-jr_000_0cb5:
-    ld   a, [de]                                     ; $0cb5: $1a
-    ld   [hl+], a                                    ; $0cb6: $22
-    inc  e                                           ; $0cb7: $1c
-    dec  b                                           ; $0cb8: $05
-    jr   nz, jr_000_0cb5                             ; $0cb9: $20 $fa
-
-    push de                                          ; $0cbb: $d5
-    ld   de, $0016                                   ; $0cbc: $11 $16 $00
-    add  hl, de                                      ; $0cbf: $19
-    pop  de                                          ; $0cc0: $d1
-    push hl                                          ; $0cc1: $e5
-    ld   hl, $0016                                   ; $0cc2: $21 $16 $00
-    add  hl, de                                      ; $0cc5: $19
-    push hl                                          ; $0cc6: $e5
-    pop  de                                          ; $0cc7: $d1
-    pop  hl                                          ; $0cc8: $e1
-    dec  c                                           ; $0cc9: $0d
-    jr   nz, jr_000_0cb3                             ; $0cca: $20 $e7
-
-    pop  bc                                          ; $0ccc: $c1
-
-jr_000_0ccd:
-    ld   de, $c400                                   ; $0ccd: $11 $00 $c4
-    ld   b, $0a                                      ; $0cd0: $06 $0a
-
-jr_000_0cd2:
-    ld   a, [de]                                     ; $0cd2: $1a
-    ld   [hl+], a                                    ; $0cd3: $22
-    inc  de                                          ; $0cd4: $13
-    dec  b                                           ; $0cd5: $05
-    jr   nz, jr_000_0cd2                             ; $0cd6: $20 $fa
-
-    push de                                          ; $0cd8: $d5
-    ld   de, $0016                                   ; $0cd9: $11 $16 $00
-    add  hl, de                                      ; $0cdc: $19
-    pop  de                                          ; $0cdd: $d1
-    dec  c                                           ; $0cde: $0d
-    jr   nz, jr_000_0ccd                             ; $0cdf: $20 $ec
-
-    ld   a, ROWS_SHIFTING_DOWN_ROW_START                                      ; $0ce1: $3e $02
-    ldh  [hRowsShiftingDownState], a                                    ; $0ce3: $e0 $e3
-    ldh  [$d4], a                                    ; $0ce5: $e0 $d4
-    xor  a                                           ; $0ce7: $af
-    ldh  [$d3], a                                    ; $0ce8: $e0 $d3
-    ret                                              ; $0cea: $c9
-
-
-GameState1b:
-    ldh  a, [hTimer1]                                    ; $0ceb: $f0 $a6
-    and  a                                           ; $0ced: $a7
-    ret  nz                                          ; $0cee: $c0
-
-    ld   a, $01                                      ; $0cef: $3e $01
-    ldh  [rIE], a                                    ; $0cf1: $e0 $ff
-    ld   a, SF_PASSIVE_STREAMING_BYTES                                      ; $0cf3: $3e $03
-    ldh  [hSerialInterruptFunc], a                                    ; $0cf5: $e0 $cd
-    ldh  a, [$d1]                                    ; $0cf7: $f0 $d1
-    cp   $77                                         ; $0cf9: $fe $77
-    jr   nz, jr_000_0d09                             ; $0cfb: $20 $0c
-
-    ldh  a, [hSerialByteRead]                                    ; $0cfd: $f0 $d0
-    cp   $aa                                         ; $0cff: $fe $aa
-    jr   nz, jr_000_0d13                             ; $0d01: $20 $10
-
-jr_000_0d03:
-    ld   a, $01                                      ; $0d03: $3e $01
-    ldh  [$ef], a                                    ; $0d05: $e0 $ef
-    jr   jr_000_0d13                                 ; $0d07: $18 $0a
-
-jr_000_0d09:
-    cp   $aa                                         ; $0d09: $fe $aa
-    jr   nz, jr_000_0d13                             ; $0d0b: $20 $06
-
-    ldh  a, [hSerialByteRead]                                    ; $0d0d: $f0 $d0
-    cp   $77                                         ; $0d0f: $fe $77
-    jr   z, jr_000_0d03                              ; $0d11: $28 $f0
-
-jr_000_0d13:
-    ld   b, $34                                      ; $0d13: $06 $34
-    ld   c, $43                                      ; $0d15: $0e $43
-    call ReturnFromCallersContextUntilBothPlayersCommunicatingBC                               ; $0d17: $cd $3f $11
-    lda ROWS_SHIFTING_DOWN_NONE                                           ; $0d1a: $af
-    ldh  [hRowsShiftingDownState], a                                    ; $0d1b: $e0 $e3
-    ldh  a, [$d1]                                    ; $0d1d: $f0 $d1
-    cp   $aa                                         ; $0d1f: $fe $aa
-    ld   a, GS_2_PLAYER_LOSER_INIT                                      ; $0d21: $3e $1e
-    jr   nz, jr_000_0d27                             ; $0d23: $20 $02
-
-    ld   a, GS_2_PLAYER_WINNER_INIT                                      ; $0d25: $3e $1d
-
-jr_000_0d27:
-    ldh  [hGameState], a                                    ; $0d27: $e0 $e1
-    ld   a, $28                                      ; $0d29: $3e $28
-    ldh  [hTimer1], a                                    ; $0d2b: $e0 $a6
-    ld   a, $1d                                      ; $0d2d: $3e $1d
-    ldh  [$c6], a                                    ; $0d2f: $e0 $c6
-    ret                                              ; $0d31: $c9
+; no serial
+    ld   a, IEF_VBLANK                                           ; $0b31
+    ldh  [rIE], a                                                ; $0b33
+
+; last sprite is a heart
+    ld   hl, wOam+OAM_SIZEOF*39                                  ; $0b35
+    xor  a                                                       ; $0b38
+    ld   [hl+], a                                                ; $0b39
+    ld   [hl], $50                                               ; $0b3a
+    inc  l                                                       ; $0b3c
+    ld   [hl], "<3"                                              ; $0b3d
+    inc  l                                                       ; $0b3f
+    ld   [hl], $00                                               ; $0b40
+ 
+    call InGameCheckResetAndPause.start                          ; $0b42
+ 
+; if still paused, none of the functions below execute
+    call InGame2PlayerCheckUnpaused                              ; $0b45
+
+; normal in-game functionality, except last which plays custom song
+    call InGameCheckButtonsPressed                               ; $0b48
+    call InGameHandlePieceFalling.start                          ; $0b4b
+    call InGameCheckIfAnyTetrisRowsComplete                      ; $0b4e
+    call InGameAddPieceToVram                                    ; $0b51
+    call ShiftEntireGameRamBufferDownARow                        ; $0b54
+    call CheckAlmostLosingStatus                                 ; $0b57
+
+; check if we're done now
+    ldh  a, [hCurrPlayerJustFinishedRequiredLines]               ; $0b5a
+    and  a                                                       ; $0b5c
+    jr   z, .notYetFinished                                      ; $0b5d
+
+; send level finished byte
+    ld   a, SB_LEVEL_WON                                         ; $0b5f
+    ldh  [hNextSerialByteToLoad], a                              ; $0b61
+    ldh  [hNumRowsUpOurTetrisPiecesAre], a                       ; $0b63
+
+; store opposite
+    ld   a, SB_LEVEL_LOST                                        ; $0b65
+    ldh  [hOppositeSerialByteToWinningLosingState], a            ; $0b67
+
+; go to end game state and set timer
+    ld   a, GS_2_PLAYER_GAME_END                                 ; $0b69
+    ldh  [hGameState], a                                         ; $0b6b
+    ld   a, $05                                                  ; $0b6d
+    ldh  [hTimer2], a                                            ; $0b6f
+    jr   .afterLevelDone                                         ; $0b71
+
+.notYetFinished:
+; if not in game over, skip below including that we should transfer in vblank
+    ldh  a, [hGameState]                                         ; $0b73
+    cp   GS_GAME_OVER_INIT                                       ; $0b75
+    jr   nz, .end                                                ; $0b77
+
+; in game over init state, during InGameHandlePieceFalling, send level lost byte
+    ld   a, SB_LEVEL_LOST                                        ; $0b79
+    ldh  [hNextSerialByteToLoad], a                              ; $0b7b
+    ldh  [hNumRowsUpOurTetrisPiecesAre], a                       ; $0b7d
+
+; store opposite
+    ld   a, SB_LEVEL_WON                                         ; $0b7f
+    ldh  [hOppositeSerialByteToWinningLosingState], a            ; $0b81
+
+.afterLevelDone:
+; clear some vars
+    xor  a                                                       ; $0b83
+    ldh  [h2toThePowerOf_LinesClearedMinus1], a                  ; $0b84
+    ldh  [h2toThePowerOf_OtherPlayersLinesClearedMinus1], a      ; $0b86
+    ldh  [hOtherPlayersMultiplierToProcess], a                   ; $0b88
+    ldh  [hCurrPlayersRowsShiftedUpDueToOtherPlayer], a          ; $0b8a
+
+; if master, set that transfer should happen
+    ldh  a, [hMultiplayerPlayerRole]                             ; $0b8c
+    cp   MP_ROLE_MASTER                                          ; $0b8e
+    jr   nz, .end                                                ; $0b90
+
+    ldh  [hMasterShouldSerialTransferInVBlank], a                ; $0b92
+
+.end:
+    call InGame2PlayerProcessSerialByte                          ; $0b94
+    call CheckIfOtherPlayerCleared2PlusLines                     ; $0b97
+    ret                                                          ; $0b9a
+
+
+; plays or unplays an 'almost losing' song
+CheckAlmostLosingStatus:
+; loop through entire game screen buffer, looking for non-empty tiles
+    ld   de, GB_TILE_WIDTH                                       ; $0b9b
+    ld   hl, wGameScreenBuffer+2                                 ; $0b9e
+    ld   a, TILE_EMPTY                                           ; $0ba1
+    ld   c, GAME_SCREEN_ROWS                                     ; $0ba3
+
+.nextRow:
+    ld   b, GAME_SQUARE_WIDTH                                    ; $0ba5
+    push hl                                                      ; $0ba7
+
+; jump if game buffer has a non-empty tile
+.nextCol:
+    cp   [hl]                                                    ; $0ba8
+    jr   nz, .afterLoop                                          ; $0ba9
+
+    inc  hl                                                      ; $0bab
+    dec  b                                                       ; $0bac
+    jr   nz, .nextCol                                            ; $0bad
+
+    pop  hl                                                      ; $0baf
+    add  hl, de                                                  ; $0bb0
+    dec  c                                                       ; $0bb1
+    jr   nz, .nextRow                                            ; $0bb2
+
+; re-push, so pop hl works the same for both branches
+    push hl                                                      ; $0bb4
+
+.afterLoop:
+    pop  hl                                                      ; $0bb5
+
+; C is now 0 if all blank tiles, 1 if non-blanks on bottom row, etc
+    ld   a, c                                                    ; $0bb6
+    ldh  [hNumRowsUpOurTetrisPiecesAre], a                       ; $0bb7
+    cp   $0c                                                     ; $0bb9
+
+; jump if near in top 1/3 of screen
+    ld   a, [wSongBeingPlayed]                                   ; $0bbb
+    jr   nc, .nearTop                                            ; $0bbe
+
+; not near top, play orig song if losing song is playing
+    cp   MUS_2_PLAYER_ALMOST_LOSING                              ; $0bc0
+    ret  nz                                                      ; $0bc2
+
+    call PlaySongBasedOnMusicTypeChosen                          ; $0bc3
+    ret                                                          ; $0bc6
+
+.nearTop:
+; ret if already playing 
+    cp   MUS_2_PLAYER_ALMOST_LOSING                              ; $0bc7
+    ret  z                                                       ; $0bc9
+
+; ret if already dead
+    ld   a, [wWavSoundToPlay]                                    ; $0bca
+    cp   WAV_GAME_OVER                                           ; $0bcd
+    ret  z                                                       ; $0bcf
+
+; play almost losing song
+    ld   a, MUS_2_PLAYER_ALMOST_LOSING                           ; $0bd0
+    ld   [wSongToStart], a                                       ; $0bd2
+    ret                                                          ; $0bd5
+
+    
+MasterPausedSerialByteRead:
+; continue if master
+    ldh  a, [hMultiplayerPlayerRole]                             ; $0bd6
+    cp   MP_ROLE_MASTER                                          ; $0bd8
+    jr   z, InGame2PlayerProcessSerialByte.afterProcessingSerialByte ; $0bda
+
+; if passive, set game just paused
+    ld   a, $01                                                  ; $0bdc
+    ld   [wGamePausedActivity], a                                ; $0bde
+    ldh  [hGamePaused], a                                        ; $0be1
+
+; save serial byte it was going to load, but not byte read
+    ldh  a, [hNextSerialByteToLoad]                              ; $0be3
+    ldh  [hPausedNextSerialByteToLoad], a                        ; $0be5
+    xor  a                                                       ; $0be7
+    ldh  [hPausedSerialByteRead], a                              ; $0be8
+    ldh  [hNextSerialByteToLoad], a                              ; $0bea
+
+    call Display2PlayerPauseText                                 ; $0bec
+    ret                                                          ; $0bef
+
+
+InGame2PlayerProcessSerialByte:
+; ret if no serial bytes to process
+    ldh  a, [hSerialInterruptHandled]                            ; $0bf0
+    and  a                                                       ; $0bf2
+    ret  z                                                       ; $0bf3
+
+; oam address of line markings
+    ld   hl, wOam+OAM_SIZEOF*12                                  ; $0bf4
+    ld   de, OAM_SIZEOF                                          ; $0bf7
+
+; check serial byte
+    xor  a                                                       ; $0bfa
+    ldh  [hSerialInterruptHandled], a                            ; $0bfb
+
+    ldh  a, [hSerialByteRead]                                    ; $0bfd
+    cp   SB_LEVEL_LOST                                           ; $0bff
+    jr   z, .otherPlayerLost                                     ; $0c01
+
+    cp   SB_LEVEL_WON                                            ; $0c03
+    jr   z, .otherPlayerWon                                      ; $0c05
+
+    cp   SB_MASTER_PAUSED                                        ; $0c07
+    jr   z, MasterPausedSerialByteRead                           ; $0c09
+
+; store serial byte in B as well
+    ld   b, a                                                    ; $0c0b
+    and  a                                                       ; $0c0c
+    jr   z, .noLineMarkings                                      ; $0c0d
+
+    bit  7, a                                                    ; $0c0f
+    jr   nz, .serialByteBit7set                                  ; $0c11
+
+    cp   $13                                                     ; $0c13
+    jr   nc, .afterProcessingSerialByte                          ; $0c15
+
+; B = 1 to $12 (num line markings to draw), C = $12-B+1, ie $12 to 1
+    ld   a, GAME_SCREEN_ROWS                                     ; $0c17
+    sub  b                                                       ; $0c19
+    ld   c, a                                                    ; $0c1a
+    inc  c                                                       ; $0c1b
+
+.drawBLineMarkings:
+; Y on screen from $98, going up (-8)
+    ld   a, $98                                                  ; $0c1c
+
+.loopShownMarkings:
+    ld   [hl], a                                                 ; $0c1e
+    add  hl, de                                                  ; $0c1f
+    sub  $08                                                     ; $0c20
+    dec  b                                                       ; $0c22
+    jr   nz, .loopShownMarkings                                  ; $0c23
+
+.afterShownLineMarkings:
+; for remaining sprites, set Y out of screen
+    ld   a, $f0                                                  ; $0c25
+
+.loopHiddenMarkings:
+    dec  c                                                       ; $0c27
+    jr   z, .afterProcessingSerialByte                           ; $0c28
+
+    ld   [hl], a                                                 ; $0c2a
+    add  hl, de                                                  ; $0c2b
+    jr   .loopHiddenMarkings                                     ; $0c2c
+
+.afterProcessingSerialByte:
+; if we just cleared 2+ lines
+    ldh  a, [h2toThePowerOf_LinesClearedMinus1]                  ; $0c2e
+    and  a                                                       ; $0c30
+    jr   z, .afterProcessingSerialBytecont                       ; $0c31
+
+; send other player our 2^x with bit 7 set
+    or   $80                                                     ; $0c33
+    ldh  [hNumRowsUpOurTetrisPiecesAre], a                       ; $0c35
+    xor  a                                                       ; $0c37
+    ldh  [h2toThePowerOf_LinesClearedMinus1], a                  ; $0c38
+
+.afterProcessingSerialBytecont:
+; dont reprocess serial byte
+    ld   a, $ff                                                  ; $0c3a
+    ldh  [hSerialByteRead], a                                    ; $0c3c
+    ldh  a, [hMultiplayerPlayerRole]                             ; $0c3e
+
+; if passive, dont set masters var. either way, report to each other
+; the line markings to draw based on how high up our pieces are
+    cp   MP_ROLE_MASTER                                          ; $0c40
+    ldh  a, [hNumRowsUpOurTetrisPiecesAre]                       ; $0c42
+    jr   nz, .setNextSerialByteToLoad                            ; $0c44
+
+    ldh  [hNextSerialByteToLoad], a                              ; $0c46
+    ld   a, $01                                                  ; $0c48
+    ldh  [hMasterShouldSerialTransferInVBlank], a                ; $0c4a
+    ret                                                          ; $0c4c
+
+.setNextSerialByteToLoad:
+    ldh  [hNextSerialByteToLoad], a                              ; $0c4d
+    ret                                                          ; $0c4f
+
+.otherPlayerWon:
+; other player won, and we won, jump
+    ldh  a, [hOppositeSerialByteToWinningLosingState]            ; $0c50
+    cp   SB_LEVEL_LOST                                           ; $0c52
+    jr   z, .wonOrLostAtTheSameTime                              ; $0c54
+
+; otherwise we lost
+    ld   a, SB_LEVEL_WON                                         ; $0c56
+    ldh  [hOppositeSerialByteToWinningLosingState], a            ; $0c58
+    ld   a, GS_GAME_OVER_INIT                                    ; $0c5a
+    ldh  [hGameState], a                                         ; $0c5c
+    jr   .afterProcessingSerialByte                              ; $0c5e
+
+.noLineMarkings:
+; B = 1 to $12 yields C = $12 to 1
+; here B = 0, yields C = $13, ie C = $13-num line markings
+    ld   c, $13                                                  ; $0c60
+    jr   .afterShownLineMarkings                                 ; $0c62
+
+.otherPlayerLost:
+; other player lost, and we lost, jump
+    ldh  a, [hOppositeSerialByteToWinningLosingState]            ; $0c64
+    cp   SB_LEVEL_WON                                            ; $0c66
+    jr   z, .wonOrLostAtTheSameTime                              ; $0c68
+
+; otherwise we won
+    ld   a, SB_LEVEL_LOST                                        ; $0c6a
+    ldh  [hOppositeSerialByteToWinningLosingState], a            ; $0c6c
+    ld   a, GS_2_PLAYER_GAME_END                                 ; $0c6e
+    ldh  [hGameState], a                                         ; $0c70
+
+; set timer
+    ld   a, $05                                                  ; $0c72
+    ldh  [hTimer2], a                                            ; $0c74
+
+; draw $12 line markings, hide 1
+    ld   c, $01                                                  ; $0c76
+    ld   b, $12                                                  ; $0c78
+    jr   .drawBLineMarkings                                      ; $0c7a
+
+.wonOrLostAtTheSameTime:
+    ld   a, $01                                                  ; $0c7c
+    ldh  [hWonOrLostAtTheSameTimeAsOtherPlayer], a               ; $0c7e
+    jr   .afterProcessingSerialByte                              ; $0c80
+
+.serialByteBit7set:
+; player cleared 2+ lines, A is 2 lines->1, 3 lines->2, 4 lines->4
+    and  $7f                                                     ; $0c82
+    cp   $05                                                     ; $0c84
+    jr   nc, .afterProcessingSerialByte                          ; $0c86
+
+; after sanity check, store other player's lines cleared multiplier
+    ldh  [h2toThePowerOf_OtherPlayersLinesClearedMinus1], a      ; $0c88
+    jr   .afterProcessingSerialBytecont                          ; $0c8a
+
+
+CheckIfOtherPlayerCleared2PlusLines:
+    ldh  a, [hOtherPlayersMultiplierToProcess]                   ; $0c8c
+    and  a                                                       ; $0c8e
+    jr   z, .checkIfMultiplierToProcess                          ; $0c8f
+
+; if multiplier to process, and exec'd function to play next piece, jump
+    bit  7, a                                                    ; $0c91
+    ret  z                                                       ; $0c93
+
+    and  $07                                                     ; $0c94
+    jr   .multiplierToProcessAfterPlayingPiece                   ; $0c96
+
+.checkIfMultiplierToProcess:
+; continue if other player cleared 2+ lines
+    ldh  a, [h2toThePowerOf_OtherPlayersLinesClearedMinus1]      ; $0c98
+    and  a                                                       ; $0c9a
+    ret  z                                                       ; $0c9b
+
+; store the multiplier once, dont do anything until after a piece is played
+    ldh  [hOtherPlayersMultiplierToProcess], a                   ; $0c9c
+    xor  a                                                       ; $0c9e
+    ldh  [h2toThePowerOf_OtherPlayersLinesClearedMinus1], a      ; $0c9f
+    ret                                                          ; $0ca1
+
+.multiplierToProcessAfterPlayingPiece:
+; 1, 2 or 4 in C
+    ld   c, a                                                    ; $0ca2
+    push bc                                                      ; $0ca3
+
+; get starting row, the higher the other player's multiplier,
+; the higher we're shifting rows
+    ld   hl, wGameScreenBuffer+$22                               ; $0ca4
+    ld   de, -GB_TILE_WIDTH                                      ; $0ca7
+
+.getStartingRow:
+    add  hl, de                                                  ; $0caa
+    dec  c                                                       ; $0cab
+    jr   nz, .getStartingRow                                     ; $0cac
+
+; hl is high up, de is top of screen
+    ld   de, wGameScreenBuffer+$22                               ; $0cae
+    ld   c, GAME_SCREEN_ROWS-1                                   ; $0cb1
+
+; copy rows upwards
+.copyNextRow:
+    ld   b, GAME_SQUARE_WIDTH                                    ; $0cb3
+
+.copyNextCol:
+    ld   a, [de]                                                 ; $0cb5
+    ld   [hl+], a                                                ; $0cb6
+    inc  e                                                       ; $0cb7
+    dec  b                                                       ; $0cb8
+    jr   nz, .copyNextCol                                        ; $0cb9
+
+; hl to next row
+    push de                                                      ; $0cbb
+    ld   de, GB_TILE_WIDTH-GAME_SQUARE_WIDTH                     ; $0cbc
+    add  hl, de                                                  ; $0cbf
+    pop  de                                                      ; $0cc0
+
+; de to next row
+    push hl                                                      ; $0cc1
+    ld   hl, GB_TILE_WIDTH-GAME_SQUARE_WIDTH                     ; $0cc2
+    add  hl, de                                                  ; $0cc5
+    push hl                                                      ; $0cc6
+    pop  de                                                      ; $0cc7
+    pop  hl                                                      ; $0cc8
+
+    dec  c                                                       ; $0cc9
+    jr   nz, .copyNextRow                                        ; $0cca
+
+; C is multiplier, hl now bottom of high-related blocks
+    pop  bc                                                      ; $0ccc
+
+; copy dark solid blocks underneath our loaded high-related blocks
+.copyDarkSolidRow:
+    ld   de, wDarkSolidBlocksUnderRandomBlocks                   ; $0ccd
+    ld   b, GAME_SQUARE_WIDTH                                    ; $0cd0
+
+.copyDarkSolidCol:
+    ld   a, [de]                                                 ; $0cd2
+    ld   [hl+], a                                                ; $0cd3
+    inc  de                                                      ; $0cd4
+    dec  b                                                       ; $0cd5
+    jr   nz, .copyDarkSolidCol                                   ; $0cd6
+
+    push de                                                      ; $0cd8
+    ld   de, GB_TILE_WIDTH-GAME_SQUARE_WIDTH                     ; $0cd9
+    add  hl, de                                                  ; $0cdc
+    pop  de                                                      ; $0cdd
+    dec  c                                                       ; $0cde
+    jr   nz, .copyDarkSolidRow                                   ; $0cdf
+
+; copy rows to vram
+    ld   a, ROWS_SHIFTING_DOWN_ROW_START                         ; $0ce1
+    ldh  [hRowsShiftingDownState], a                             ; $0ce3
+    ldh  [hCurrPlayersRowsShiftedUpDueToOtherPlayer], a          ; $0ce5
+
+; multiplier now processed
+    xor  a                                                       ; $0ce7
+    ldh  [hOtherPlayersMultiplierToProcess], a                   ; $0ce8
+    ret                                                          ; $0cea
+
+
+GameState1b_2PlayerGameEnd:
+; proceed when timer done
+    ldh  a, [hTimer1]                                            ; $0ceb
+    and  a                                                       ; $0ced
+    ret  nz                                                      ; $0cee
+
+; no serial
+    ld   a, IEF_VBLANK                                           ; $0cef
+    ldh  [rIE], a                                                ; $0cf1
+
+; read each other's bytes passive stream bytes
+    ld   a, SF_PASSIVE_STREAMING_BYTES                           ; $0cf3
+    ldh  [hSerialInterruptFunc], a                               ; $0cf5
+
+; check our opposite state and opponent's state
+    ldh  a, [hOppositeSerialByteToWinningLosingState]            ; $0cf7
+    cp   SB_LEVEL_WON                                            ; $0cf9
+    jr   nz, .notLost                                            ; $0cfb
+
+; jump if opponent did not lose
+    ldh  a, [hSerialByteRead]                                    ; $0cfd
+    cp   SB_LEVEL_LOST                                           ; $0cff
+    jr   nz, .cont                                               ; $0d01
+
+.tie:
+; set that we tied
+    ld   a, $01                                                  ; $0d03
+    ldh  [hWonOrLostAtTheSameTimeAsOtherPlayer], a               ; $0d05
+    jr   .cont                                                   ; $0d07
+
+.notLost:
+    cp   SB_LEVEL_LOST                                           ; $0d09
+    jr   nz, .cont                                               ; $0d0b
+
+; jump if our opponent won
+    ldh  a, [hSerialByteRead]                                    ; $0d0d
+    cp   SB_LEVEL_WON                                            ; $0d0f
+    jr   z, .tie                                                 ; $0d11
+
+.cont:
+; wait until both players in this post-game state
+    ld   b, $34                                                  ; $0d13
+    ld   c, $43                                                  ; $0d15
+    call ReturnFromCallersContextUntilBothPlayersCommunicatingBC ; $0d17
+
+; no shifting down state
+    lda ROWS_SHIFTING_DOWN_NONE                                  ; $0d1a
+    ldh  [hRowsShiftingDownState], a                             ; $0d1b
+
+; go to loser state if we lost, winner if we won
+    ldh  a, [hOppositeSerialByteToWinningLosingState]            ; $0d1d
+    cp   SB_LEVEL_LOST                                           ; $0d1f
+    ld   a, GS_2_PLAYER_LOSER_INIT                               ; $0d21
+    jr   nz, .setGameState                                       ; $0d23
+
+    ld   a, GS_2_PLAYER_WINNER_INIT                              ; $0d25
+
+.setGameState:
+    ldh  [hGameState], a                                         ; $0d27
+
+; set timer, and
+    ld   a, $28                                                  ; $0d29
+    ldh  [hTimer1], a                                            ; $0d2b
+    ld   a, $1d                                                  ; $0d2d
+    ldh  [h5GamesFinishedTimer], a                               ; $0d2f
+    ret                                                          ; $0d31
 
 
 GameState1d_2PlayerWinnerInit:
@@ -1555,17 +1658,17 @@ GameState1d_2PlayerWinnerInit:
     and  a                                                       ; $0d34
     ret  nz                                                      ; $0d35
 
-;
-    ldh  a, [$ef]                                    ; $0d36: $f0 $ef
-    and  a                                           ; $0d38: $a7
-    jr   nz, .cont_0d40                             ; $0d39: $20 $05
+; if a tie, dont change score
+    ldh  a, [hWonOrLostAtTheSameTimeAsOtherPlayer]               ; $0d36
+    and  a                                                       ; $0d38
+    jr   nz, .cont                                               ; $0d39
 
 ; inc winning games
     ldh  a, [hNumWinningGames]                                   ; $0d3b
     inc  a                                                       ; $0d3d
     ldh  [hNumWinningGames], a                                   ; $0d3e
 
-.cont_0d40:
+.cont:
     call LoadWinnerLoserScreen                                   ; $0d40
 
 ; load happy sprites for player
@@ -1585,10 +1688,10 @@ GameState1d_2PlayerWinnerInit:
     ld   a, $19                                                  ; $0d57
     ldh  [hTimer1], a                                            ; $0d59
 
-;
-    ldh  a, [$ef]                                    ; $0d5b: $f0 $ef
-    and  a                                           ; $0d5d: $a7
-    jr   z, .copyHappySprites                              ; $0d5e: $28 $05
+; if a tie, hide baby sprites
+    ldh  a, [hWonOrLostAtTheSameTimeAsOtherPlayer]               ; $0d5b
+    and  a                                                       ; $0d5d
+    jr   z, .copyHappySprites                                    ; $0d5e
 
 ; hide baby mario/luigi
     ld   hl, wSpriteSpecs+SPR_SPEC_SIZEOF*2                      ; $0d60
@@ -1615,22 +1718,23 @@ GameState1d_2PlayerWinnerInit:
 
 
 WinnerMainIsMaster:
-    ldh  a, [hNumWinningGames]                                    ; $0d7e: $f0 $d7
-    cp   $05                                         ; $0d80: $fe $05
-    jr   nz, jr_000_0d8b                             ; $0d82: $20 $07
+    ldh  a, [hNumWinningGames]                                   ; $0d7e
+    cp   $05                                                     ; $0d80
+    jr   nz, .notWonAll5                                         ; $0d82
 
-    ldh  a, [$c6]                                    ; $0d84: $f0 $c6
-    and  a                                           ; $0d86: $a7
-    jr   z, jr_000_0d91                              ; $0d87: $28 $08
+; won 5 games
+    ldh  a, [h5GamesFinishedTimer]                               ; $0d84
+    and  a                                                       ; $0d86
+    jr   z, .toNextState                                         ; $0d87
 
-    jr   jr_000_0dad                                 ; $0d89: $18 $22
+    jr   GameState20_2PlayerWinnerMain.end                       ; $0d89
 
-jr_000_0d8b:
-    ldh  a, [hButtonsPressed]                                    ; $0d8b: $f0 $81
-    bit  3, a                                        ; $0d8d: $cb $5f
-    jr   z, jr_000_0dad                              ; $0d8f: $28 $1c
+.notWonAll5:
+    ldh  a, [hButtonsPressed]                                    ; $0d8b
+    bit  PADB_START, a                                           ; $0d8d
+    jr   z, GameState20_2PlayerWinnerMain.end                    ; $0d8f
 
-jr_000_0d91:
+.toNextState:
 ; go to next state and send that to passive
     ld   a, SB_WINNER_LOSER_SCREEN_TO_NEXT                       ; $0d91
     ldh  [hNextSerialByteToLoad], a                              ; $0d93
@@ -1640,11 +1744,11 @@ jr_000_0d91:
 
 GameState20_2PlayerWinnerMain:
 ; no serial
-    ld   a, IEF_VBLANK                                      ; $0d99: $3e $01
-    ldh  [rIE], a                                    ; $0d9b: $e0 $ff
+    ld   a, IEF_VBLANK                                           ; $0d99
+    ldh  [rIE], a                                                ; $0d9b
 
-    ldh  a, [hSerialInterruptHandled]                                    ; $0d9d: $f0 $cc
-    jr   z, jr_000_0dad                              ; $0d9f: $28 $0c
+    ldh  a, [hSerialInterruptHandled]                            ; $0d9d
+    jr   z, .end                                                 ; $0d9f
 
 ; jump if master
     ldh  a, [hMultiplayerPlayerRole]                             ; $0da1
@@ -1656,11 +1760,13 @@ GameState20_2PlayerWinnerMain:
     cp   SB_WINNER_LOSER_SCREEN_TO_NEXT                          ; $0da9
     jr   z, GoPastWinnerGameStates                               ; $0dab
 
-jr_000_0dad:
-    call Call_000_0dbd                               ; $0dad: $cd $bd $0d
-    ld   a, $03                                      ; $0db0: $3e $03
-    call CopyASpriteSpecsToShadowOam                               ; $0db2: $cd $73 $26
-    ret                                              ; $0db5: $c9
+.end:
+    call ProcessWinnerMainTimer                                  ; $0dad
+
+; send mario/luigi sprites
+    ld   a, $03                                                  ; $0db0
+    call CopyASpriteSpecsToShadowOam                             ; $0db2
+    ret                                                          ; $0db5
 
 
 GoPastWinnerGameStates:
@@ -1670,85 +1776,103 @@ GoPastWinnerGameStates:
     ret                                                          ; $0dbc
 
 
-Call_000_0dbd:
-    ldh  a, [hTimer1]                                    ; $0dbd: $f0 $a6
-    and  a                                           ; $0dbf: $a7
-    jr   nz, jr_000_0de5                             ; $0dc0: $20 $23
+ProcessWinnerMainTimer:
+    ldh  a, [hTimer1]                                            ; $0dbd
+    and  a                                                       ; $0dbf
+    jr   nz, .afterTimerCheck                                    ; $0dc0
 
-    ld   hl, $ffc6                                   ; $0dc2: $21 $c6 $ff
-    dec  [hl]                                        ; $0dc5: $35
-    ld   a, $19                                      ; $0dc6: $3e $19
-    ldh  [hTimer1], a                                    ; $0dc8: $e0 $a6
-    call ClearPushStartText                               ; $0dca: $cd $60 $0f
-    ld   hl, wSpriteSpecs+SPR_SPEC_BaseYOffset                                   ; $0dcd: $21 $01 $c2
-    ld   a, [hl]                                     ; $0dd0: $7e
-    xor  $30                                         ; $0dd1: $ee $30
-    ld   [hl+], a                                    ; $0dd3: $22
-    cp   $60                                         ; $0dd4: $fe $60
-    call z, DisplayTextPushStart                            ; $0dd6: $cc $17 $0f
-    inc  l                                           ; $0dd9: $2c
-    push af                                          ; $0dda: $f5
-    ld   a, [hl]                                     ; $0ddb: $7e
-    xor  $01                                         ; $0ddc: $ee $01
-    ld   [hl], a                                     ; $0dde: $77
-    ld   l, $13                                      ; $0ddf: $2e $13
-    ld   [hl-], a                                    ; $0de1: $32
-    pop  af                                          ; $0de2: $f1
-    dec  l                                           ; $0de3: $2d
-    ld   [hl], a                                     ; $0de4: $77
+; main timer done
+    ld   hl, h5GamesFinishedTimer                                ; $0dc2
+    dec  [hl]                                                    ; $0dc5
 
-jr_000_0de5:
-    ldh  a, [hNumWinningGames]                                    ; $0de5: $f0 $d7
-    cp   $05                                         ; $0de7: $fe $05
-    jr   nz, jr_000_0e13                             ; $0de9: $20 $28
+; animate adult every $19 frames, and clear text
+    ld   a, $19                                                  ; $0dc6
+    ldh  [hTimer1], a                                            ; $0dc8
+    call ClearPushStartText                                      ; $0dca
 
-    ldh  a, [$c6]                                    ; $0deb: $f0 $c6
-    ld   hl, $c221                                   ; $0ded: $21 $21 $c2
-    cp   $06                                         ; $0df0: $fe $06
-    jr   z, jr_000_0e0f                              ; $0df2: $28 $1b
+; y to jump up high and down
+    ld   hl, wSpriteSpecs+SPR_SPEC_BaseYOffset                   ; $0dcd
+    ld   a, [hl]                                                 ; $0dd0
+    xor  $30                                                     ; $0dd1
+    ld   [hl+], a                                                ; $0dd3
+    cp   $60                                                     ; $0dd4
+    call z, DisplayTextPushStart                                 ; $0dd6
 
-    cp   $08                                         ; $0df4: $fe $08
-    jr   nc, jr_000_0e13                             ; $0df6: $30 $1b
+; animate adult, flipping both spec idxes
+    inc  l                                                       ; $0dd9
+    push af                                                      ; $0dda
+    ld   a, [hl]                                                 ; $0ddb
+    xor  $01                                                     ; $0ddc
+    ld   [hl], a                                                 ; $0dde
+    ld   l, SPR_SPEC_SIZEOF+SPR_SPEC_SpecIdx                     ; $0ddf
+    ld   [hl-], a                                                ; $0de1
 
-    ld   a, [hl]                                     ; $0df8: $7e
-    cp   $72                                         ; $0df9: $fe $72
-    jr   nc, jr_000_0e03                             ; $0dfb: $30 $06
+; set y of 2nd adult sprite
+    pop  af                                                      ; $0de2
+    dec  l                                                       ; $0de3
+    ld   [hl], a                                                 ; $0de4
 
-    cp   $69                                         ; $0dfd: $fe $69
-    ret  z                                           ; $0dff: $c8
+.afterTimerCheck:
+; timer=7, fall 2 pixels
+; timer=6, hide
+    ldh  a, [hNumWinningGames]                                   ; $0de5
+    cp   $05                                                     ; $0de7
+    jr   nz, .end                                                ; $0de9
 
-    inc  [hl]                                        ; $0e00: $34
-    inc  [hl]                                        ; $0e01: $34
-    ret                                              ; $0e02: $c9
+; won 5 games
+    ldh  a, [h5GamesFinishedTimer]                               ; $0deb
+    ld   hl, wSpriteSpecs+SPR_SPEC_SIZEOF*2+SPR_SPEC_BaseYOffset ; $0ded
 
-jr_000_0e03:
-    ld   [hl], $69                                   ; $0e03: $36 $69
-    inc  l                                           ; $0e05: $2c
-    inc  l                                           ; $0e06: $2c
-    ld   [hl], $57                                   ; $0e07: $36 $57
-    ld   a, SND_NON_4_LINES_CLEARED                                      ; $0e09: $3e $06
-    ld   [wSquareSoundToPlay], a                                  ; $0e0b: $ea $e0 $df
-    ret                                              ; $0e0e: $c9
+; last step, baby is hidden
+    cp   $06                                                     ; $0df0
+    jr   z, .hideBabySprite                                      ; $0df2
 
+    cp   $08                                                     ; $0df4
+    jr   nc, .end                                                ; $0df6
 
-jr_000_0e0f:
-    dec  l                                           ; $0e0f: $2d
-    ld   [hl], $80                                   ; $0e10: $36 $80
-    ret                                              ; $0e12: $c9
+; 0-5, or 7
+    ld   a, [hl]                                                 ; $0df8
+    cp   $72                                                     ; $0df9
+    jr   nc, .turnBabyToSmallGas                                 ; $0dfb
 
+; if small gas (y >= $72), return, otherwise y+= 2
+    cp   $69                                                     ; $0dfd
+    ret  z                                                       ; $0dff
 
-jr_000_0e13:
-    ldh  a, [hTimer2]                                    ; $0e13: $f0 $a7
-    and  a                                           ; $0e15: $a7
-    ret  nz                                          ; $0e16: $c0
+    inc  [hl]                                                    ; $0e00
+    inc  [hl]                                                    ; $0e01
+    ret                                                          ; $0e02
 
-    ld   a, $0f                                      ; $0e17: $3e $0f
-    ldh  [hTimer2], a                                    ; $0e19: $e0 $a7
-    ld   hl, $c223                                   ; $0e1b: $21 $23 $c2
-    ld   a, [hl]                                     ; $0e1e: $7e
-    xor  $01                                         ; $0e1f: $ee $01
-    ld   [hl], a                                     ; $0e21: $77
-    ret                                              ; $0e22: $c9
+.turnBabyToSmallGas:
+; Y = $69 (1 pixel down), spec is baby gas
+    ld   [hl], $69                                               ; $0e03
+    inc  l                                                       ; $0e05
+    inc  l                                                       ; $0e06
+    ld   [hl], SPRITE_SPEC_BABY_GAS                              ; $0e07
+    ld   a, SND_NON_4_LINES_CLEARED                              ; $0e09
+    ld   [wSquareSoundToPlay], a                                 ; $0e0b
+    ret                                                          ; $0e0e
+
+.hideBabySprite:
+    dec  l                                                       ; $0e0f
+    ld   [hl], SPRITE_SPEC_HIDDEN                                ; $0e10
+    ret                                                          ; $0e12
+
+.end:
+; reset timer ever 15 frames
+    ldh  a, [hTimer2]                                            ; $0e13
+    and  a                                                       ; $0e15
+    ret  nz                                                      ; $0e16
+
+    ld   a, $0f                                                  ; $0e17
+    ldh  [hTimer2], a                                            ; $0e19
+
+; animate baby sprite
+    ld   hl, wSpriteSpecs+SPR_SPEC_SIZEOF*2+SPR_SPEC_SpecIdx     ; $0e1b
+    ld   a, [hl]                                                 ; $0e1e
+    xor  $01                                                     ; $0e1f
+    ld   [hl], a                                                 ; $0e21
+    ret                                                          ; $0e22
 
 
 GameState1e_2PlayerLoserInit:
@@ -1757,16 +1881,17 @@ GameState1e_2PlayerLoserInit:
     and  a                                                       ; $0e25
     ret  nz                                                      ; $0e26
 
-    ldh  a, [$ef]                                    ; $0e27: $f0 $ef
-    and  a                                           ; $0e29: $a7
-    jr   nz, .cont_0e31                             ; $0e2a: $20 $05
+; if lost at the same time, dont change score
+    ldh  a, [hWonOrLostAtTheSameTimeAsOtherPlayer]               ; $0e27
+    and  a                                                       ; $0e29
+    jr   nz, .cont                                               ; $0e2a
 
 ; inc losing games
     ldh  a, [hNumLosingGames]                                    ; $0e2c
     inc  a                                                       ; $0e2e
     ldh  [hNumLosingGames], a                                    ; $0e2f
 
-.cont_0e31:
+.cont:
     call LoadWinnerLoserScreen                                   ; $0e31
 
 ; load sad sprites for player
@@ -1786,10 +1911,10 @@ GameState1e_2PlayerLoserInit:
     ld   a, $19                                                  ; $0e48
     ldh  [hTimer1], a                                            ; $0e4a
 
-;
-    ldh  a, [$ef]                                    ; $0e4c: $f0 $ef
-    and  a                                           ; $0e4e: $a7
-    jr   z, .copySadSprites                              ; $0e4f: $28 $05
+; if no one won, hide baby sprites
+    ldh  a, [hWonOrLostAtTheSameTimeAsOtherPlayer]               ; $0e4c
+    and  a                                                       ; $0e4e
+    jr   z, .copySadSprites                                      ; $0e4f
 
 ; hide baby mario/luigi
     ld   hl, wSpriteSpecs+SPR_SPEC_SIZEOF                        ; $0e51
@@ -1816,23 +1941,23 @@ GameState1e_2PlayerLoserInit:
 
 
 LoserMainIsMaster:
-    ldh  a, [hNumLosingGames]                                    ; $0e6f: $f0 $d8
-    cp   $05                                         ; $0e71: $fe $05
-    jr   nz, jr_000_0e7c                             ; $0e73: $20 $07
+    ldh  a, [hNumLosingGames]                                    ; $0e6f
+    cp   $05                                                     ; $0e71
+    jr   nz, .notLost5                                           ; $0e73
 
 ; lost 5
-    ldh  a, [$c6]                                    ; $0e75: $f0 $c6
-    and  a                                           ; $0e77: $a7
-    jr   z, jr_000_0e82                              ; $0e78: $28 $08
+    ldh  a, [h5GamesFinishedTimer]                               ; $0e75
+    and  a                                                       ; $0e77
+    jr   z, .toNextState                                         ; $0e78
 
-    jr   jr_000_0e9e                                 ; $0e7a: $18 $22
+    jr   GameState21_2PlayerLoserMain.end                        ; $0e7a
 
-jr_000_0e7c:
-    ldh  a, [hButtonsPressed]                                    ; $0e7c: $f0 $81
-    bit  PADB_START, a                                        ; $0e7e: $cb $5f
-    jr   z, jr_000_0e9e                              ; $0e80: $28 $1c
+.notLost5:
+    ldh  a, [hButtonsPressed]                                    ; $0e7c
+    bit  PADB_START, a                                           ; $0e7e
+    jr   z, GameState21_2PlayerLoserMain.end                     ; $0e80
 
-jr_000_0e82:
+.toNextState:
 ; go to next state and send that to passive
     ld   a, SB_WINNER_LOSER_SCREEN_TO_NEXT                       ; $0e82
     ldh  [hNextSerialByteToLoad], a                              ; $0e84
@@ -1842,11 +1967,11 @@ jr_000_0e82:
 
 GameState21_2PlayerLoserMain:
 ; no serial interrupt
-    ld   a, IEF_VBLANK                                      ; $0e8a: $3e $01
-    ldh  [rIE], a                                    ; $0e8c: $e0 $ff
+    ld   a, IEF_VBLANK                                           ; $0e8a
+    ldh  [rIE], a                                                ; $0e8c
 
-    ldh  a, [hSerialInterruptHandled]                                    ; $0e8e: $f0 $cc
-    jr   z, jr_000_0e9e                              ; $0e90: $28 $0c
+    ldh  a, [hSerialInterruptHandled]                            ; $0e8e
+    jr   z, .end                                                 ; $0e90
 
 ; jump if master
     ldh  a, [hMultiplayerPlayerRole]                             ; $0e92
@@ -1858,11 +1983,13 @@ GameState21_2PlayerLoserMain:
     cp   SB_WINNER_LOSER_SCREEN_TO_NEXT                          ; $0e9a
     jr   z, GoPastLoserGameStates                                ; $0e9c
 
-jr_000_0e9e:
-    call Call_000_0eae                               ; $0e9e: $cd $ae $0e
-    ld   a, $02                                      ; $0ea1: $3e $02
-    call CopyASpriteSpecsToShadowOam                               ; $0ea3: $cd $73 $26
-    ret                                              ; $0ea6: $c9
+.end:
+    call ProcessLoserMainTimer                                   ; $0e9e
+
+; send mario/luigi sprites
+    ld   a, $02                                                  ; $0ea1
+    call CopyASpriteSpecsToShadowOam                             ; $0ea3
+    ret                                                          ; $0ea6
 
 
 GoPastLoserGameStates:
@@ -1872,95 +1999,113 @@ GoPastLoserGameStates:
     ret                                                          ; $0ead
 
 
-Call_000_0eae:
-    ldh  a, [hTimer1]                                    ; $0eae: $f0 $a6
-    and  a                                           ; $0eb0: $a7
-    jr   nz, jr_000_0ecf                             ; $0eb1: $20 $1c
+ProcessLoserMainTimer:
+    ldh  a, [hTimer1]                                            ; $0eae
+    and  a                                                       ; $0eb0
+    jr   nz, .afterTimerCheck                                    ; $0eb1
 
-    ld   hl, $ffc6                                   ; $0eb3: $21 $c6 $ff
-    dec  [hl]                                        ; $0eb6: $35
+; main timer done
+    ld   hl, h5GamesFinishedTimer                                ; $0eb3
+    dec  [hl]                                                    ; $0eb6
 
-    ld   a, $19                                      ; $0eb7: $3e $19
-    ldh  [hTimer1], a                                    ; $0eb9: $e0 $a6
+; animate baby every $19 frames, and clear text
+    ld   a, $19                                                  ; $0eb7
+    ldh  [hTimer1], a                                            ; $0eb9
+    call ClearPushStartText                                      ; $0ebb
 
-    call ClearPushStartText                               ; $0ebb: $cd $60 $0f
-    ld   hl, $c211                                   ; $0ebe: $21 $11 $c2
-    ld   a, [hl]                                     ; $0ec1: $7e
-    xor  $08                                         ; $0ec2: $ee $08
-    ld   [hl+], a                                    ; $0ec4: $22
-    cp   $68                                         ; $0ec5: $fe $68
-    call z, DisplayTextPushStart                            ; $0ec7: $cc $17 $0f
-    inc  l                                           ; $0eca: $2c
-    ld   a, [hl]                                     ; $0ecb: $7e
-    xor  $01                                         ; $0ecc: $ee $01
-    ld   [hl], a                                     ; $0ece: $77
+; y to jump up and down
+    ld   hl, wSpriteSpecs+SPR_SPEC_SIZEOF+SPR_SPEC_BaseYOffset   ; $0ebe
+    ld   a, [hl]                                                 ; $0ec1
+    xor  $08                                                     ; $0ec2
+    ld   [hl+], a                                                ; $0ec4
+    cp   $68                                                     ; $0ec5
+    call z, DisplayTextPushStart                                 ; $0ec7
 
-jr_000_0ecf:
-    ldh  a, [hNumLosingGames]                                    ; $0ecf: $f0 $d8
-    cp   $05                                         ; $0ed1: $fe $05
-    jr   nz, jr_000_0f07                             ; $0ed3: $20 $32
+; animate baby
+    inc  l                                                       ; $0eca
+    ld   a, [hl]                                                 ; $0ecb
+    xor  $01                                                     ; $0ecc
+    ld   [hl], a                                                 ; $0ece
+
+.afterTimerCheck:
+; timer=7, fall 4 pixels
+; timer=6, turn to gas
+; timer=5, hide
+    ldh  a, [hNumLosingGames]                                    ; $0ecf
+    cp   $05                                                     ; $0ed1
+    jr   nz, .end                                                ; $0ed3
 
 ; lost 5 games
-    ldh  a, [$c6]                                    ; $0ed5: $f0 $c6
-    ld   hl, wSpriteSpecs+SPR_SPEC_BaseYOffset                                   ; $0ed7: $21 $01 $c2
-    cp   $05                                         ; $0eda: $fe $05
-    jr   z, jr_000_0f03                              ; $0edc: $28 $25
+    ldh  a, [h5GamesFinishedTimer]                               ; $0ed5
+    ld   hl, wSpriteSpecs+SPR_SPEC_BaseYOffset                   ; $0ed7
 
-    cp   $06                                         ; $0ede: $fe $06
-    jr   z, jr_000_0ef3                              ; $0ee0: $28 $11
+; last step, adult is hidden
+    cp   $05                                                     ; $0eda
+    jr   z, .hideAdultSprite                                     ; $0edc
 
-    cp   $08                                         ; $0ee2: $fe $08
-    jr   nc, jr_000_0f07                             ; $0ee4: $30 $21
+; 2nd last step, adult is turned to gas
+    cp   $06                                                     ; $0ede
+    jr   z, .turnAdultToBigGas                                   ; $0ee0
 
-    ld   a, [hl]                                     ; $0ee6: $7e
-    cp   $72                                         ; $0ee7: $fe $72
-    jr   nc, jr_000_0f03                             ; $0ee9: $30 $18
+; 0-4, or 7, proceed
+    cp   $08                                                     ; $0ee2
+    jr   nc, .end                                                ; $0ee4
 
-    cp   $61                                         ; $0eeb: $fe $61
-    ret  z                                           ; $0eed: $c8
+; player falls over time, past a certain point, it's then hidden
+    ld   a, [hl]                                                 ; $0ee6
+    cp   $72                                                     ; $0ee7
+    jr   nc, .hideAdultSprite                                    ; $0ee9
 
-    inc  [hl]                                        ; $0eee: $34
-    inc  [hl]                                        ; $0eef: $34
-    inc  [hl]                                        ; $0ef0: $34
-    inc  [hl]                                        ; $0ef1: $34
-    ret                                              ; $0ef2: $c9
+; if big gas (step 6), (0-4) return, ie player falls when timer = 7
+    cp   $61                                                     ; $0eeb
+    ret  z                                                       ; $0eed
 
-jr_000_0ef3:
-    dec  l                                           ; $0ef3: $2d
-    ld   [hl], $00                                   ; $0ef4: $36 $00
-    inc  l                                           ; $0ef6: $2c
-    ld   [hl], $61                                   ; $0ef7: $36 $61
-    inc  l                                           ; $0ef9: $2c
-    inc  l                                           ; $0efa: $2c
-    ld   [hl], $56                                   ; $0efb: $36 $56
-    ld   a, SND_NON_4_LINES_CLEARED                                      ; $0efd: $3e $06
-    ld   [wSquareSoundToPlay], a                                  ; $0eff: $ea $e0 $df
-    ret                                              ; $0f02: $c9
+    inc  [hl]                                                    ; $0eee
+    inc  [hl]                                                    ; $0eef
+    inc  [hl]                                                    ; $0ef0
+    inc  [hl]                                                    ; $0ef1
+    ret                                                          ; $0ef2
 
-jr_000_0f03:
-    dec  l                                           ; $0f03: $2d
-    ld   [hl], $80                                   ; $0f04: $36 $80
-    ret                                              ; $0f06: $c9
+.turnAdultToBigGas:
+; visible, with Y of $61 and turned to gas
+    dec  l                                                       ; $0ef3
+    ld   [hl], $00                                               ; $0ef4
+    inc  l                                                       ; $0ef6
+    ld   [hl], $61                                               ; $0ef7
+    inc  l                                                       ; $0ef9
+    inc  l                                                       ; $0efa
+    ld   [hl], SPRITE_SPEC_ADULT_GAS                             ; $0efb
+    ld   a, SND_NON_4_LINES_CLEARED                              ; $0efd
+    ld   [wSquareSoundToPlay], a                                 ; $0eff
+    ret                                                          ; $0f02
 
-jr_000_0f07:
-    ldh  a, [hTimer2]                                    ; $0f07: $f0 $a7
-    and  a                                           ; $0f09: $a7
-    ret  nz                                          ; $0f0a: $c0
+.hideAdultSprite:
+    dec  l                                                       ; $0f03
+    ld   [hl], SPRITE_SPEC_HIDDEN                                ; $0f04
+    ret                                                          ; $0f06
 
-    ld   a, $0f                                      ; $0f0b: $3e $0f
-    ldh  [hTimer2], a                                    ; $0f0d: $e0 $a7
-    ld   hl, wSpriteSpecs+SPR_SPEC_SpecIdx                                   ; $0f0f: $21 $03 $c2
-    ld   a, [hl]                                     ; $0f12: $7e
-    xor  $01                                         ; $0f13: $ee $01
-    ld   [hl], a                                     ; $0f15: $77
-    ret                                              ; $0f16: $c9
+.end:
+; reset timer ever 15 frames
+    ldh  a, [hTimer2]                                            ; $0f07
+    and  a                                                       ; $0f09
+    ret  nz                                                      ; $0f0a
+
+    ld   a, $0f                                                  ; $0f0b
+    ldh  [hTimer2], a                                            ; $0f0d
+
+; animate adult sprite
+    ld   hl, wSpriteSpecs+SPR_SPEC_SpecIdx                       ; $0f0f
+    ld   a, [hl]                                                 ; $0f12
+    xor  $01                                                     ; $0f13
+    ld   [hl], a                                                 ; $0f15
+    ret                                                          ; $0f16
 
 
     setcharmap congrats
 
 DisplayTextPushStart:
-    push af                                          ; $0f17: $f5
-    push hl                                          ; $0f18: $e5
+    push af                                                      ; $0f17
+    push hl                                                      ; $0f18
 
 ; text not relevant if won/lost 5
     ldh  a, [hNumWinningGames]                                   ; $0f19
@@ -2068,13 +2213,14 @@ LoadWinnerLoserScreen:
     ld   [hl], "O"                                               ; $0fb7
 
 .afterBGdisplay:
-    ldh  a, [$ef]                                    ; $0fb9: $f0 $ef
-    and  a                                           ; $0fbb: $a7
-    jr   nz, jr_000_0fc1                             ; $0fbc: $20 $03
+; process deuce and advantage logic if not a tie
+    ldh  a, [hWonOrLostAtTheSameTimeAsOtherPlayer]               ; $0fb9
+    and  a                                                       ; $0fbb
+    jr   nz, .afterDeuceAdvantageLogic                           ; $0fbc
 
-    call ProcessDeuceAdvantageLogic                               ; $0fbe: $cd $85 $10
+    call ProcessDeuceAdvantageLogic                              ; $0fbe
 
-jr_000_0fc1:
+.afterDeuceAdvantageLogic:
 ; skip below, eg drawing faces, if score = 0
     ldh  a, [hNumWinningGames]                                   ; $0fc1
     and  a                                                       ; $0fc3
@@ -2387,10 +2533,10 @@ GameState1f_Post2PlayerResults:
     and  a                                                       ; $1118
     ret  nz                                                      ; $1119
 
-;
+; clear oam and that a tie happened
     call Clear_wOam                                              ; $111a
-    xor  a                                           ; $111d: $af
-    ldh  [$ef], a                                    ; $111e: $e0 $ef
+    xor  a                                                       ; $111d
+    ldh  [hWonOrLostAtTheSameTimeAsOtherPlayer], a               ; $111e
 
 ; dont proceed until both players in this state
     ld   b, $27                                                  ; $1120

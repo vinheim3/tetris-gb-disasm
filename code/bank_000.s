@@ -74,7 +74,7 @@ SerialInterruptInner:
 	RST_JumpTable                                                   ; $006d
 	dw SerialFunc0_titleScreen
 	dw SerialFunc1_InGame
-	dw SerialFunc2
+	dw SerialFunc2_2PlayerInGame
 	dw SerialFunc3_PassiveStreamingBytes
 	dw Stub_27ea
 
@@ -124,22 +124,22 @@ SerialFunc1_InGame:
 	ret                                                             ; $00a3
 
 
-SerialFunc2:
+SerialFunc2_2PlayerInGame:
 ; load serial byte for respective player
-	ldh  a, [rSB]                                    ; $00a4: $f0 $01
-	ldh  [hSerialByteRead], a                                    ; $00a6: $e0 $d0
-	ldh  a, [hMultiplayerPlayerRole]                                    ; $00a8: $f0 $cb
-	cp   MP_ROLE_MASTER                                         ; $00aa: $fe $29
-	ret  z                                           ; $00ac: $c8
+	ldh  a, [rSB]                                                   ; $00a4
+	ldh  [hSerialByteRead], a                                       ; $00a6
+	ldh  a, [hMultiplayerPlayerRole]                                ; $00a8
+	cp   MP_ROLE_MASTER                                             ; $00aa
+	ret  z                                                          ; $00ac
 
 ; if passive, auto-load next byte, and default the one after to $ff
-	ldh  a, [hNextSerialByteToLoad]                                    ; $00ad: $f0 $cf
-	ldh  [rSB], a                                    ; $00af: $e0 $01
-	ld   a, $ff                                      ; $00b1: $3e $ff
-	ldh  [hNextSerialByteToLoad], a                                    ; $00b3: $e0 $cf
-	ld   a, SC_REQUEST_TRANSFER|SC_PASSIVE                                      ; $00b5: $3e $80
-	ldh  [rSC], a                                    ; $00b7: $e0 $02
-	ret                                              ; $00b9: $c9
+	ldh  a, [hNextSerialByteToLoad]                                 ; $00ad
+	ldh  [rSB], a                                                   ; $00af
+	ld   a, $ff                                                     ; $00b1
+	ldh  [hNextSerialByteToLoad], a                                 ; $00b3
+	ld   a, SC_REQUEST_TRANSFER|SC_PASSIVE                          ; $00b5
+	ldh  [rSC], a                                                   ; $00b7
+	ret                                                             ; $00b9
 
 
 SerialFunc3_PassiveStreamingBytes:
@@ -160,15 +160,15 @@ SerialFunc3_PassiveStreamingBytes:
 	ret                                                             ; $00cf
 
 
-UnusedSerialFunc_clearIntFlagsIfSerialFunc2:
-	ldh  a, [hSerialInterruptFunc]                                    ; $00d0: $f0 $cd
-	cp   SF_2_PLAYER_IN_GAME                                         ; $00d2: $fe $02
-	ret  nz                                          ; $00d4: $c0
+UnusedSerialFunc_clearIntFlagsIfSerialFunc2_2PlayerInGame:
+	ldh  a, [hSerialInterruptFunc]                                  ; $00d0
+	cp   SF_2_PLAYER_IN_GAME                                        ; $00d2
+	ret  nz                                                         ; $00d4
 
-	xor  a                                           ; $00d5: $af
-	ldh  [rIF], a                                    ; $00d6: $e0 $0f
-	ei                                               ; $00d8: $fb
-	ret                                              ; $00d9: $c9
+	xor  a                                                          ; $00d5
+	ldh  [rIF], a                                                   ; $00d6
+	ei                                                              ; $00d8
+	ret                                                             ; $00d9
 
 ds $100-@, $ff
 
@@ -609,7 +609,7 @@ ProcessGameState:
 	dw GameState18_2PlayerInGameInit
 	dw GameState19_2PlayerSyncHighBlocksAndPieces
 	dw GameState1a_2PlayerInGameMain
-	dw GameState1b
+	dw GameState1b_2PlayerGameEnd
 	dw GameState1c_2PlayerSyncAtInGameInitEnd
 	dw GameState1d_2PlayerWinnerInit
 	dw GameState1e_2PlayerLoserInit
@@ -1376,93 +1376,101 @@ InGameCheckResetAndPause:
 	ldh  a, [hGamePaused]                                           ; $1c6f
 	xor  $01                                                        ; $1c71
 	ldh  [hGamePaused], a                                           ; $1c73
-	jr   z, jr_000_1caa                              ; $1c75: $28 $33
+	jr   z, InGame2PlayerCheckUnpaused.gameUnpaused                 ; $1c75
 
 ; game paused
-	ld   a, $01                                      ; $1c77: $3e $01
-	ld   [wGamePausedActivity], a                                  ; $1c79: $ea $7f $df
-	ldh  a, [hSerialByteRead]                                    ; $1c7c: $f0 $d0
-	ldh  [$f2], a                                    ; $1c7e: $e0 $f2
-	ldh  a, [hNextSerialByteToLoad]                                    ; $1c80: $f0 $cf
-	ldh  [$f1], a                                    ; $1c82: $e0 $f1
-	call Call_000_1ccb                               ; $1c84: $cd $cb $1c
-	ret                                              ; $1c87: $c9
+	ld   a, $01                                                     ; $1c77
+	ld   [wGamePausedActivity], a                                   ; $1c79
+
+; preserve serial-related bytes, and display pause text
+	ldh  a, [hSerialByteRead]                                       ; $1c7c
+	ldh  [hPausedSerialByteRead], a                                 ; $1c7e
+	ldh  a, [hNextSerialByteToLoad]                                 ; $1c80
+	ldh  [hPausedNextSerialByteToLoad], a                           ; $1c82
+	call Display2PlayerPauseText                                    ; $1c84
+	ret                                                             ; $1c87
 
 
-Call_000_1c88:
-	ldh  a, [hGamePaused]                                    ; $1c88: $f0 $ab
-	and  a                                           ; $1c8a: $a7
-	ret  z                                           ; $1c8b: $c8
+InGame2PlayerCheckUnpaused:
+; return if unpaused
+	ldh  a, [hGamePaused]                                           ; $1c88
+	and  a                                                          ; $1c8a
+	ret  z                                                          ; $1c8b
 
-	ldh  a, [hSerialInterruptHandled]                                    ; $1c8c: $f0 $cc
-	jr   z, jr_000_1cc9                              ; $1c8e: $28 $39
+; if no serial interrupt, return from caller's context
+	ldh  a, [hSerialInterruptHandled]                               ; $1c8c
+	jr   z, .popHL                                                  ; $1c8e
 
-	xor  a                                           ; $1c90: $af
-	ldh  [hSerialInterruptHandled], a                                    ; $1c91: $e0 $cc
-	ldh  a, [hMultiplayerPlayerRole]                                    ; $1c93: $f0 $cb
-	cp   MP_ROLE_MASTER                                         ; $1c95: $fe $29
-	jr   nz, jr_000_1ca1                             ; $1c97: $20 $08
+; check player role
+	xor  a                                                          ; $1c90
+	ldh  [hSerialInterruptHandled], a                               ; $1c91
+	ldh  a, [hMultiplayerPlayerRole]                                ; $1c93
+	cp   MP_ROLE_MASTER                                             ; $1c95
+	jr   nz, .isPassive                                             ; $1c97
 
-	ld   a, $94                                      ; $1c99: $3e $94
-	ldh  [hNextSerialByteToLoad], a                                    ; $1c9b: $e0 $cf
-	ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $1c9d: $e0 $ce
-	pop  hl                                          ; $1c9f: $e1
-	ret                                              ; $1ca0: $c9
+; tell passive we just paused, return from caller's context
+	ld   a, SB_MASTER_PAUSED                                        ; $1c99
+	ldh  [hNextSerialByteToLoad], a                                 ; $1c9b
+	ldh  [hMasterShouldSerialTransferInVBlank], a                   ; $1c9d
+	pop  hl                                                         ; $1c9f
+	ret                                                             ; $1ca0
 
-jr_000_1ca1:
-	xor  a                                           ; $1ca1: $af
-	ldh  [hNextSerialByteToLoad], a                                    ; $1ca2: $e0 $cf
-	ldh  a, [hSerialByteRead]                                    ; $1ca4: $f0 $d0
-	cp   $94                                         ; $1ca6: $fe $94
-	jr   z, jr_000_1cc9                              ; $1ca8: $28 $1f
+.isPassive:
+; return from caller's context if master did not pause
+	xor  a                                                          ; $1ca1
+	ldh  [hNextSerialByteToLoad], a                                 ; $1ca2
+	ldh  a, [hSerialByteRead]                                       ; $1ca4
+	cp   SB_MASTER_PAUSED                                           ; $1ca6
+	jr   z, .popHL                                                  ; $1ca8
 
-jr_000_1caa:
-	ldh  a, [$f2]                                    ; $1caa: $f0 $f2
-	ldh  [hSerialByteRead], a                                    ; $1cac: $e0 $d0
-	ldh  a, [$f1]                                    ; $1cae: $f0 $f1
-	ldh  [hNextSerialByteToLoad], a                                    ; $1cb0: $e0 $cf
-	ld   a, $02                                      ; $1cb2: $3e $02
-	ld   [wGamePausedActivity], a                                  ; $1cb4: $ea $7f $df
-	xor  a                                           ; $1cb7: $af
-	ldh  [hGamePaused], a                                    ; $1cb8: $e0 $ab
-	ld   hl, $98ee                                   ; $1cba: $21 $ee $98
-	ld   b, $8e                                      ; $1cbd: $06 $8e
-	ld   c, $05                                      ; $1cbf: $0e $05
+.gameUnpaused:
+; get the serial-related bytes before pausing
+	ldh  a, [hPausedSerialByteRead]                                 ; $1caa
+	ldh  [hSerialByteRead], a                                       ; $1cac
+	ldh  a, [hPausedNextSerialByteToLoad]                           ; $1cae
+	ldh  [hNextSerialByteToLoad], a                                 ; $1cb0
 
-jr_000_1cc1:
-	call StoreBinHLwhenLCDFree                               ; $1cc1: $cd $ff $19
-	inc  l                                           ; $1cc4: $2c
-	dec  c                                           ; $1cc5: $0d
-	jr   nz, jr_000_1cc1                             ; $1cc6: $20 $f9
+; set game just unpaused
+	ld   a, $02                                                     ; $1cb2
+	ld   [wGamePausedActivity], a                                   ; $1cb4
+	xor  a                                                          ; $1cb7
+	ldh  [hGamePaused], a                                           ; $1cb8
 
-	ret                                              ; $1cc8: $c9
+; remove pause text
+	ld   hl, _SCRN0+$ee                                             ; $1cba
+	ld   b, TILE_BLACK                                              ; $1cbd
+	ld   c, $05                                                     ; $1cbf
 
+.loop:
+	call StoreBinHLwhenLCDFree                                      ; $1cc1
+	inc  l                                                          ; $1cc4
+	dec  c                                                          ; $1cc5
+	jr   nz, .loop                                                  ; $1cc6
 
-jr_000_1cc9:
-	pop  hl                                          ; $1cc9: $e1
-	ret                                              ; $1cca: $c9
+	ret                                                             ; $1cc8
 
-
-Call_000_1ccb:
-	ld   hl, $98ee                                   ; $1ccb: $21 $ee $98
-	ld   c, $05                                      ; $1cce: $0e $05
-	ld   de, $1cdd                                   ; $1cd0: $11 $dd $1c
-
-jr_000_1cd3:
-	ld   a, [de]                                     ; $1cd3: $1a
-	call StoreAinHLwhenLCDFree                               ; $1cd4: $cd $fe $19
-	inc  de                                          ; $1cd7: $13
-	inc  l                                           ; $1cd8: $2c
-	dec  c                                           ; $1cd9: $0d
-	jr   nz, jr_000_1cd3                             ; $1cda: $20 $f7
-
-	ret                                              ; $1cdc: $c9
+.popHL:
+	pop  hl                                                         ; $1cc9
+	ret                                                             ; $1cca
 
 
-	add  hl, de                                      ; $1cdd: $19
-	ld   a, [bc]                                     ; $1cde: $0a
-	ld   e, $1c                                      ; $1cdf: $1e $1c
-	db $0e 
+Display2PlayerPauseText:
+	ld   hl, _SCRN0+$ee                                             ; $1ccb
+	ld   c, $05                                                     ; $1cce
+	ld   de, .text                                                  ; $1cd0
+
+.loop:
+	ld   a, [de]                                                    ; $1cd3
+	call StoreAinHLwhenLCDFree                                      ; $1cd4
+	inc  de                                                         ; $1cd7
+	inc  l                                                          ; $1cd8
+	dec  c                                                          ; $1cd9
+	jr   nz, .loop                                                  ; $1cda
+
+	ret                                                             ; $1cdc
+
+.text:
+	db "PAUSE"
 	
 	
 GameState01_GameOverInit:
@@ -1539,13 +1547,13 @@ GameState0d_GameOverScreenClearing:
 	and  a                                                          ; $1f2a
 	jr   z, .is1player                                              ; $1f2b
 
-; 2 player
-	ld   a, $3f                                      ; $1f2d: $3e $3f
-	ldh  [hTimer1], a                                    ; $1f2f: $e0 $a6
+; 2 player, go to game end to do next round
+	ld   a, $3f                                                     ; $1f2d
+	ldh  [hTimer1], a                                               ; $1f2f
 
-	ld   a, GS_1b                                      ; $1f31: $3e $1b
-	ldh  [hSerialInterruptHandled], a                                    ; $1f33: $e0 $cc
-	jr   .setGameState                                 ; $1f35: $18 $37
+	ld   a, GS_2_PLAYER_GAME_END                                    ; $1f31
+	ldh  [hSerialInterruptHandled], a                               ; $1f33
+	jr   .setGameState                                              ; $1f35
 
 .is1player:
 	ld   a, TILE_EMPTY                                              ; $1f37
