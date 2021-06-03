@@ -186,6 +186,11 @@ SB_LEVEL_WON EQU $77
 SB_LEVEL_LOST EQU $aa
 SB_MASTER_PAUSED EQU $94
 ; can send each other 0 to $12 to say how many line markings are visible
+; can also send a byte with bit 7 set that says how many rows the
+;   opponent's grid moves up:
+;     2 lines cleared - 1 row
+;     3 lines cleared - 2 rows
+;     4 lines cleared - 4 rows
 
 ; Winner/Loser screen
 SB_WINNER_LOSER_SCREEN_TO_NEXT EQU $60
