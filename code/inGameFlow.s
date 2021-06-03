@@ -30,7 +30,7 @@ PlayNextPieceLoadNextAndHiddenPiece:
 
 .inDemoOr2Player:
 ; get next piece
-    ld   h, HIGH(wDemoPieces)                                    ; $2024
+    ld   h, HIGH(wDemoOrMultiplayerPieces)                       ; $2024
     ldh  a, [hLowByteOfCurrDemoStepAddress]                      ; $2026
     ld   l, a                                                    ; $2028
     ld   e, [hl]                                                 ; $2029
@@ -38,10 +38,10 @@ PlayNextPieceLoadNextAndHiddenPiece:
 ; check if done
     inc  hl                                                      ; $202a
     ld   a, h                                                    ; $202b
-    cp   HIGH(wDemoPieces.end)                                   ; $202c
+    cp   HIGH(wDemoOrMultiplayerPieces.end)                      ; $202c
     jr   nz, .setNextDemoStep                                    ; $202e
 
-    ld   hl, wDemoPieces                                         ; $2030
+    ld   hl, wDemoOrMultiplayerPieces                            ; $2030
 
 .setNextDemoStep:
     ld   a, l                                                    ; $2033

@@ -51,7 +51,7 @@ wSpriteSpecs:: ; $c200
     ds $100 ; unknown size, but multiple of $10
 
 ; also pieces for 2 player
-wDemoPieces:: ; $c300
+wDemoOrMultiplayerPieces:: ; $c300
     ds $100 ; actually $30 in size
 .end::
 

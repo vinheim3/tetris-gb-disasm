@@ -170,7 +170,7 @@ jr_000_2c33:
 	ld   l, $ef                                      ; $2c75: $2e $ef
 	ldh  a, [hTypedTextCharLoc+1]                                    ; $2c77: $f0 $ca
 	ld   l, $ef                                      ; $2c79: $2e $ef
-	ldh  a, [$db]                                    ; $2c7b: $f0 $db
+	ldh  a, [hIsDeuce]                                    ; $2c7b: $f0 $db
 	ld   l, $ef                                      ; $2c7d: $2e $ef
 	ldh  a, [$0b]                                    ; $2c7f: $f0 $0b
 	cpl                                              ; $2c81: $2f

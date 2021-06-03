@@ -8,7 +8,7 @@ GameState24_CopyrightDisplay:
 	call Clear_wOam                                                 ; $0375
 
 ; set demo pieces
-	ld   hl, wDemoPieces                                            ; $0378
+	ld   hl, wDemoOrMultiplayerPieces                               ; $0378
 	ld   de, DemoPieces                                             ; $037b
 
 .copyLoop:
@@ -16,7 +16,7 @@ GameState24_CopyrightDisplay:
 	ld   [hl+], a                                                   ; $037f
 	inc  de                                                         ; $0380
 	ld   a, h                                                       ; $0381
-	cp   HIGH(wDemoPieces.end)                                      ; $0382
+	cp   HIGH(wDemoOrMultiplayerPieces.end)                         ; $0382
 	jr   nz, .copyLoop                                              ; $0384
 
 ; show all, with bg data at $8000, displayed at $9800

@@ -103,6 +103,10 @@ hPreHorizMovementSpecIdx:: ; $ffa0
 hRandomSquareObstacleTileChosen:: ; $ffa0
     db
 
+    nextu
+
+hMarioLuigiFaceTopLeftTileIdx:: ; $ffa0
+
     endu
 
 hTempIE:: ; $ffa1
@@ -146,11 +150,20 @@ w2PlayerHighSelected_2:: ; $ffad
 hHiddenLoadedPiece:: ; $ffae
     db
 
+    union
+
 hffaf:
-    ds $b0-$af
+    db
 
 hLowByteOfCurrDemoStepAddress:: ; $ffb0
     db
+
+    nextu
+
+h2PlayerAddressOfNextPiece:: ; $ffaf
+    dw
+
+    endu
 
 hffb1:
     db
@@ -235,8 +248,23 @@ hffd1:
 h2PlayerGameFinished:: ; $ffd6
     db
 
-hffd7:
-    ds $e0-$d7
+hNumWinningGames:: ; $ffd7
+    db
+
+hNumLosingGames:: ; $ffd8
+    db
+
+hSelfIsAdvantage:: ; $ffd9
+    db
+
+hOtherIsAdvantage:: ; $ffda
+    db
+
+hIsDeuce:: ; $ffdb
+    db
+
+hffdc:
+    ds $e0-$dc
 
 hFoundDisplayableScoreDigit:: ; $ffe0
     db
@@ -283,6 +311,11 @@ hDemoButtonsHeld:: ; $ffed
 hActualUserButtonsHeldDuringDemo:: ; $ffee
     db
 
+; cleared after winner/loser screen
+; set at some point in game state 1a and 1b
+; if 0, inc winning/losing score after a game
+; if non-0, hide baby mario/luigi
+; if 0, process deuce/advantage logic
 hffef:
     ds $f0-$ef
 
@@ -309,6 +342,14 @@ h1stHighScoreHighestByteForLevel:: ; $fffb
     nextu
 
 hIsPieceStuckOnTopRow:: ; $fffb
+    db
+
+    nextu
+
+hfffb:
+    db
+
+hPrevHiddenPiece:: ; $fffc
     db
 
     endu

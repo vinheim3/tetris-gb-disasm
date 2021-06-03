@@ -162,7 +162,7 @@ SerialFunc3_PassiveStreamingBytes:
 
 UnusedSerialFunc_clearIntFlagsIfSerialFunc2:
 	ldh  a, [hSerialInterruptFunc]                                    ; $00d0: $f0 $cd
-	cp   SF_02                                         ; $00d2: $fe $02
+	cp   SF_2_PLAYER_IN_GAME                                         ; $00d2: $fe $02
 	ret  nz                                          ; $00d4: $c0
 
 	xor  a                                           ; $00d5: $af
@@ -607,10 +607,10 @@ ProcessGameState:
 	dw GameState16_MarioLuigiScreenInit
 	dw GameState17_MarioLuigiScreenMain
 	dw GameState18_2PlayerInGameInit
-	dw GameState19
+	dw GameState19_2PlayerSyncHighBlocksAndPieces
 	dw GameState1a_2PlayerInGameMain
 	dw GameState1b
-	dw GameState1c
+	dw GameState1c_2PlayerSyncAtInGameInitEnd
 	dw GameState1d_2PlayerWinnerInit
 	dw GameState1e_2PlayerLoserInit
 	dw GameState1f_Post2PlayerResults
