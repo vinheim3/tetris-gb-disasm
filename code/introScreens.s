@@ -63,9 +63,11 @@ GameState35_CopyrightCanContinue:
 
 
 GameState06_TitleScreenInit:
-	call TurnOffLCD                               ; $03ae: $cd $20 $28
-	xor  a                                           ; $03b1: $af
-	ldh  [$e9], a                                    ; $03b2: $e0 $e9
+	call TurnOffLCD                                                 ; $03ae
+
+; reset some vars
+	xor  a                                                          ; $03b1
+	ldh  [hIsRecordingDemo], a                                      ; $03b2
 	ldh  [hPieceFallingState], a                                    ; $03b4
 	ldh  [hTetrisFlashCount], a                                     ; $03b6
 	ldh  [hPieceCollisionDetected], a                               ; $03b8
@@ -145,40 +147,50 @@ GameState06_TitleScreenInit:
 
 
 PlayDemo:
-	ld   a, GAME_TYPE_A_TYPE                                      ; $041f: $3e $37
-	ldh  [hGameType], a                                    ; $0421: $e0 $c0
+	ld   a, GAME_TYPE_A_TYPE                                        ; $041f
+	ldh  [hGameType], a                                             ; $0421
 
-	ld   a, $09                                      ; $0423: $3e $09
-	ldh  [hATypeLevel], a                                    ; $0425: $e0 $c2
-	xor  a                                           ; $0427: $af
-	ldh  [hIs2Player], a                                    ; $0428: $e0 $c5
-	ldh  [hLowByteOfCurrDemoStepAddress], a                                    ; $042a: $e0 $b0
-	ldh  [$ed], a                                    ; $042c: $e0 $ed
-	ldh  [$ea], a                                    ; $042e: $e0 $ea
-	ld   a, $62                                      ; $0430: $3e $62
-	ldh  [$eb], a                                    ; $0432: $e0 $eb
-	ld   a, $b0                                      ; $0434: $3e $b0
-	ldh  [$ec], a                                    ; $0436: $e0 $ec
+; for demo 2, a type level 9
+	ld   a, $09                                                     ; $0423
+	ldh  [hATypeLevel], a                                           ; $0425
+
+; defaults for either demo
+	xor  a                                                          ; $0427
+	ldh  [hIs2Player], a                                            ; $0428
+	ldh  [hLowByteOfCurrDemoStepAddress], a                         ; $042a
+	ldh  [hDemoButtonsHeld], a                                      ; $042c
+	ldh  [hFramesUntilNextDemoInput], a                             ; $042e
+
+; demo 2 input address
+	ld   a, HIGH(Demo2Inputs)                                       ; $0430
+	ldh  [hAddressOfDemoInput], a                                   ; $0432
+	ld   a, LOW(Demo2Inputs)                                        ; $0434
+	ldh  [hAddressOfDemoInput+1], a                                 ; $0436
 
 ; flip between demo 1 and 2
-	ldh  a, [hPrevOrCurrDemoPlayed]                                    ; $0438: $f0 $e4
-	cp   $02                                         ; $043a: $fe $02
-	ld   a, $02                                      ; $043c: $3e $02
-	jr   nz, .setDemoPlayed                             ; $043e: $20 $1a
+	ldh  a, [hPrevOrCurrDemoPlayed]                                 ; $0438
+	cp   $02                                                        ; $043a
+	ld   a, $02                                                     ; $043c
+	jr   nz, .setDemoPlayed                                         ; $043e
 
-	ld   a, GAME_TYPE_B_TYPE                                      ; $0440: $3e $77
-	ldh  [hGameType], a                                    ; $0442: $e0 $c0
-	ld   a, $09                                      ; $0444: $3e $09
-	ldh  [hBTypeLevel], a                                    ; $0446: $e0 $c3
-	ld   a, $02                                      ; $0448: $3e $02
-	ldh  [hBTypeHigh], a                                    ; $044a: $e0 $c4
-	ld   a, $63                                      ; $044c: $3e $63
-	ldh  [$eb], a                                    ; $044e: $e0 $eb
-	ld   a, $b0                                      ; $0450: $3e $b0
-	ldh  [$ec], a                                    ; $0452: $e0 $ec
-	ld   a, $11                                      ; $0454: $3e $11
-	ldh  [hLowByteOfCurrDemoStepAddress], a                                    ; $0456: $e0 $b0
-	ld   a, $01                                      ; $0458: $3e $01
+; for demo 1 - b type level 9, high 2
+	ld   a, GAME_TYPE_B_TYPE                                        ; $0440
+	ldh  [hGameType], a                                             ; $0442
+	ld   a, $09                                                     ; $0444
+	ldh  [hBTypeLevel], a                                           ; $0446
+	ld   a, $02                                                     ; $0448
+	ldh  [hBTypeHigh], a                                            ; $044a
+
+; demo 1 input address
+	ld   a, HIGH(Demo1Inputs)                                       ; $044c
+	ldh  [hAddressOfDemoInput], a                                   ; $044e
+	ld   a, LOW(Demo1Inputs)                                        ; $0450
+	ldh  [hAddressOfDemoInput+1], a                                 ; $0452
+
+; start from step $11 (after demo 2's steps)
+	ld   a, $11                                                     ; $0454
+	ldh  [hLowByteOfCurrDemoStepAddress], a                         ; $0456
+	ld   a, $01                                                     ; $0458
 
 .setDemoPlayed:
 	ldh  [hPrevOrCurrDemoPlayed], a                                 ; $045a
@@ -200,10 +212,10 @@ PlayDemo:
 	ret                                                             ; $0473
 
 
-; unused
-	ld   a, $ff                                      ; $0474: $3e $ff
-	ldh  [$e9], a                                    ; $0476: $e0 $e9
-	ret                                              ; $0478: $c9
+UnusedSetRecordingDemo:
+	ld   a, $ff                                                     ; $0474
+	ldh  [hIsRecordingDemo], a                                      ; $0476
+	ret                                                             ; $0478
 
 
 GameState07_TitleScreenMain:

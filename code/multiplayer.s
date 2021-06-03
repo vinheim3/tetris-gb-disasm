@@ -1033,33 +1033,41 @@ Call_000_0aa1:
 
 
 GameState1c:
-    ld   a, $01                                      ; $0ad2: $3e $01
+; no serial
+    ld   a, IEF_VBLANK                                      ; $0ad2: $3e $01
     ldh  [rIE], a                                    ; $0ad4: $e0 $ff
+
+;
     ldh  a, [hRowsShiftingDownState]                                    ; $0ad6: $f0 $e3
     and  a                                           ; $0ad8: $a7
     jr   nz, jr_000_0b02                             ; $0ad9: $20 $27
 
     ld   b, $44                                      ; $0adb: $06 $44
     ld   c, $20                                      ; $0add: $0e $20
-    call Call_000_113f                               ; $0adf: $cd $3f $11
+    call ReturnFromCallersContextUntilBothPlayersCommunicatingBC                               ; $0adf: $cd $3f $11
     ld   a, SF_02                                      ; $0ae2: $3e $02
     ldh  [hSerialInterruptFunc], a                                    ; $0ae4: $e0 $cd
-    ld   a, [wNextPieceHidden]                                  ; $0ae6: $fa $de $c0
-    and  a                                           ; $0ae9: $a7
-    jr   z, jr_000_0af1                              ; $0aea: $28 $05
 
-    ld   a, $80                                      ; $0aec: $3e $80
-    ld   [wSpriteSpecs+SPR_SPEC_SIZEOF], a                                  ; $0aee: $ea $10 $c2
+; hide next piece if var set
+    ld   a, [wNextPieceHidden]                                   ; $0ae6
+    and  a                                                       ; $0ae9
+    jr   z, .afterHidden                                         ; $0aea
 
-jr_000_0af1:
-    call Copy1stSpriteSpecToSprite4                               ; $0af1: $cd $83 $26
-    call Copy2ndSpriteSpecToSprite8                               ; $0af4: $cd $96 $26
-    call PlaySongBasedOnMusicTypeChosen                               ; $0af7: $cd $17 $15
-    xor  a                                           ; $0afa: $af
-    ldh  [h2PlayerGameFinished], a                                    ; $0afb: $e0 $d6
-    ld   a, GS_2PLAYER_IN_GAME_MAIN                                      ; $0afd: $3e $1a
-    ldh  [hGameState], a                                    ; $0aff: $e0 $e1
-    ret                                              ; $0b01: $c9
+    ld   a, SPRITE_SPEC_HIDDEN                                   ; $0aec
+    ld   [wSpriteSpecs+SPR_SPEC_SIZEOF], a                       ; $0aee
+
+.afterHidden:
+; copy pieces to oam, play song
+    call Copy1stSpriteSpecToSprite4                              ; $0af1
+    call Copy2ndSpriteSpecToSprite8                              ; $0af4
+    call PlaySongBasedOnMusicTypeChosen                          ; $0af7
+
+; set that 0 games had been finished since menu, and go to next state
+    xor  a                                                       ; $0afa
+    ldh  [h2PlayerGameFinished], a                               ; $0afb
+    ld   a, GS_2PLAYER_IN_GAME_MAIN                              ; $0afd
+    ldh  [hGameState], a                                         ; $0aff
+    ret                                                          ; $0b01
 
 jr_000_0b02:
     cp   $05                                         ; $0b02: $fe $05
@@ -1481,7 +1489,7 @@ jr_000_0d09:
 jr_000_0d13:
     ld   b, $34                                      ; $0d13: $06 $34
     ld   c, $43                                      ; $0d15: $0e $43
-    call Call_000_113f                               ; $0d17: $cd $3f $11
+    call ReturnFromCallersContextUntilBothPlayersCommunicatingBC                               ; $0d17: $cd $3f $11
     lda ROWS_SHIFTING_DOWN_NONE                                           ; $0d1a: $af
     ldh  [hRowsShiftingDownState], a                                    ; $0d1b: $e0 $e3
     ldh  a, [$d1]                                    ; $0d1d: $f0 $d1
@@ -1501,14 +1509,17 @@ jr_000_0d27:
 
 
 GameState1d_2PlayerWinnerInit:
+; proceed when timer done
     ldh  a, [hTimer1]                                    ; $0d32: $f0 $a6
     and  a                                           ; $0d34: $a7
     ret  nz                                          ; $0d35: $c0
 
+;
     ldh  a, [$ef]                                    ; $0d36: $f0 $ef
     and  a                                           ; $0d38: $a7
     jr   nz, jr_000_0d40                             ; $0d39: $20 $05
 
+;
     ldh  a, [$d7]                                    ; $0d3b: $f0 $d7
     inc  a                                           ; $0d3d: $3c
     ldh  [$d7], a                                    ; $0d3e: $e0 $d7
@@ -1529,7 +1540,7 @@ jr_000_0d40:
     ld   c, $03                                                  ; $0d52
     call CopyCSpriteSpecStructsFromDEtoHL                        ; $0d54
 
-;
+; set timer
     ld   a, $19                                      ; $0d57: $3e $19
     ldh  [hTimer1], a                                    ; $0d59: $e0 $a6
 
@@ -1562,8 +1573,7 @@ jr_000_0d65:
     ld   [wSongToStart], a                                  ; $0d7a: $ea $e8 $df
     ret                                              ; $0d7d: $c9
 
-
-jr_000_0d7e:
+WinnerMainIsMaster:
     ldh  a, [$d7]                                    ; $0d7e: $f0 $d7
     cp   $05                                         ; $0d80: $fe $05
     jr   nz, jr_000_0d8b                             ; $0d82: $20 $07
@@ -1580,25 +1590,30 @@ jr_000_0d8b:
     jr   z, jr_000_0dad                              ; $0d8f: $28 $1c
 
 jr_000_0d91:
-    ld   a, $60                                      ; $0d91: $3e $60
-    ldh  [hNextSerialByteToLoad], a                                    ; $0d93: $e0 $cf
-    ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $0d95: $e0 $ce
-    jr   jr_000_0db6                                 ; $0d97: $18 $1d
+; go to next state and send that to passive
+    ld   a, SB_WINNER_LOSER_SCREEN_TO_NEXT                       ; $0d91
+    ldh  [hNextSerialByteToLoad], a                              ; $0d93
+    ldh  [hMasterShouldSerialTransferInVBlank], a                ; $0d95
+    jr   GoPastWinnerGameStates                                  ; $0d97
 
 
 GameState20_2PlayerWinnerMain:
-    ld   a, $01                                      ; $0d99: $3e $01
+; no serial
+    ld   a, IEF_VBLANK                                      ; $0d99: $3e $01
     ldh  [rIE], a                                    ; $0d9b: $e0 $ff
+
     ldh  a, [hSerialInterruptHandled]                                    ; $0d9d: $f0 $cc
     jr   z, jr_000_0dad                              ; $0d9f: $28 $0c
 
-    ldh  a, [hMultiplayerPlayerRole]                                    ; $0da1: $f0 $cb
-    cp   MP_ROLE_MASTER                                         ; $0da3: $fe $29
-    jr   z, jr_000_0d7e                              ; $0da5: $28 $d7
+; jump if master
+    ldh  a, [hMultiplayerPlayerRole]                             ; $0da1
+    cp   MP_ROLE_MASTER                                          ; $0da3
+    jr   z, WinnerMainIsMaster                                   ; $0da5
 
-    ldh  a, [hSerialByteRead]                                    ; $0da7: $f0 $d0
-    cp   $60                                         ; $0da9: $fe $60
-    jr   z, jr_000_0db6                              ; $0dab: $28 $09
+; if passive, go next state if master had gone
+    ldh  a, [hSerialByteRead]                                    ; $0da7
+    cp   SB_WINNER_LOSER_SCREEN_TO_NEXT                          ; $0da9
+    jr   z, GoPastWinnerGameStates                               ; $0dab
 
 jr_000_0dad:
     call Call_000_0dbd                               ; $0dad: $cd $bd $0d
@@ -1607,11 +1622,11 @@ jr_000_0dad:
     ret                                              ; $0db5: $c9
 
 
-jr_000_0db6:
-    ld   a, GS_POST_2_PLAYER_RESULTS                                      ; $0db6: $3e $1f
-    ldh  [hGameState], a                                    ; $0db8: $e0 $e1
-    ldh  [hSerialInterruptHandled], a                                    ; $0dba: $e0 $cc
-    ret                                              ; $0dbc: $c9
+GoPastWinnerGameStates:
+    ld   a, GS_POST_2_PLAYER_RESULTS                             ; $0db6
+    ldh  [hGameState], a                                         ; $0db8
+    ldh  [hSerialInterruptHandled], a                            ; $0dba
+    ret                                                          ; $0dbc
 
 
 Call_000_0dbd:
@@ -1623,13 +1638,13 @@ Call_000_0dbd:
     dec  [hl]                                        ; $0dc5: $35
     ld   a, $19                                      ; $0dc6: $3e $19
     ldh  [hTimer1], a                                    ; $0dc8: $e0 $a6
-    call Call_000_0f60                               ; $0dca: $cd $60 $0f
+    call ClearPushStartText                               ; $0dca: $cd $60 $0f
     ld   hl, wSpriteSpecs+SPR_SPEC_BaseYOffset                                   ; $0dcd: $21 $01 $c2
     ld   a, [hl]                                     ; $0dd0: $7e
     xor  $30                                         ; $0dd1: $ee $30
     ld   [hl+], a                                    ; $0dd3: $22
     cp   $60                                         ; $0dd4: $fe $60
-    call z, Call_000_0f17                            ; $0dd6: $cc $17 $0f
+    call z, DisplayTextPushStart                            ; $0dd6: $cc $17 $0f
     inc  l                                           ; $0dd9: $2c
     push af                                          ; $0dda: $f5
     ld   a, [hl]                                     ; $0ddb: $7e
@@ -1746,7 +1761,7 @@ jr_000_0e56:
     ret                                              ; $0e6e: $c9
 
 
-jr_000_0e6f:
+LoserMainIsMaster:
     ldh  a, [$d8]                                    ; $0e6f: $f0 $d8
     cp   $05                                         ; $0e71: $fe $05
     jr   nz, jr_000_0e7c                             ; $0e73: $20 $07
@@ -1759,29 +1774,34 @@ jr_000_0e6f:
 
 jr_000_0e7c:
     ldh  a, [hButtonsPressed]                                    ; $0e7c: $f0 $81
-    bit  3, a                                        ; $0e7e: $cb $5f
+    bit  PADB_START, a                                        ; $0e7e: $cb $5f
     jr   z, jr_000_0e9e                              ; $0e80: $28 $1c
 
 jr_000_0e82:
-    ld   a, $60                                      ; $0e82: $3e $60
-    ldh  [hNextSerialByteToLoad], a                                    ; $0e84: $e0 $cf
-    ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $0e86: $e0 $ce
-    jr   jr_000_0ea7                                 ; $0e88: $18 $1d
+; go to next state and send that to passive
+    ld   a, SB_WINNER_LOSER_SCREEN_TO_NEXT                       ; $0e82
+    ldh  [hNextSerialByteToLoad], a                              ; $0e84
+    ldh  [hMasterShouldSerialTransferInVBlank], a                ; $0e86
+    jr   GoPastLoserGameStates                                   ; $0e88
 
 
 GameState21_2PlayerLoserMain:
-    ld   a, $01                                      ; $0e8a: $3e $01
+; no serial interrupt
+    ld   a, IEF_VBLANK                                      ; $0e8a: $3e $01
     ldh  [rIE], a                                    ; $0e8c: $e0 $ff
+
     ldh  a, [hSerialInterruptHandled]                                    ; $0e8e: $f0 $cc
     jr   z, jr_000_0e9e                              ; $0e90: $28 $0c
 
-    ldh  a, [hMultiplayerPlayerRole]                                    ; $0e92: $f0 $cb
-    cp   MP_ROLE_MASTER                                         ; $0e94: $fe $29
-    jr   z, jr_000_0e6f                              ; $0e96: $28 $d7
+; jump if master
+    ldh  a, [hMultiplayerPlayerRole]                             ; $0e92
+    cp   MP_ROLE_MASTER                                          ; $0e94
+    jr   z, LoserMainIsMaster                                    ; $0e96
 
-    ldh  a, [hSerialByteRead]                                    ; $0e98: $f0 $d0
-    cp   $60                                         ; $0e9a: $fe $60
-    jr   z, jr_000_0ea7                              ; $0e9c: $28 $09
+; if passive, go next state if master had gone
+    ldh  a, [hSerialByteRead]                                    ; $0e98
+    cp   SB_WINNER_LOSER_SCREEN_TO_NEXT                          ; $0e9a
+    jr   z, GoPastLoserGameStates                                ; $0e9c
 
 jr_000_0e9e:
     call Call_000_0eae                               ; $0e9e: $cd $ae $0e
@@ -1790,11 +1810,11 @@ jr_000_0e9e:
     ret                                              ; $0ea6: $c9
 
 
-jr_000_0ea7:
-    ld   a, GS_POST_2_PLAYER_RESULTS                                      ; $0ea7: $3e $1f
-    ldh  [hGameState], a                                    ; $0ea9: $e0 $e1
-    ldh  [hSerialInterruptHandled], a                                    ; $0eab: $e0 $cc
-    ret                                              ; $0ead: $c9
+GoPastLoserGameStates:
+    ld   a, GS_POST_2_PLAYER_RESULTS                             ; $0ea7
+    ldh  [hGameState], a                                         ; $0ea9
+    ldh  [hSerialInterruptHandled], a                            ; $0eab
+    ret                                                          ; $0ead
 
 
 Call_000_0eae:
@@ -1806,13 +1826,13 @@ Call_000_0eae:
     dec  [hl]                                        ; $0eb6: $35
     ld   a, $19                                      ; $0eb7: $3e $19
     ldh  [hTimer1], a                                    ; $0eb9: $e0 $a6
-    call Call_000_0f60                               ; $0ebb: $cd $60 $0f
+    call ClearPushStartText                               ; $0ebb: $cd $60 $0f
     ld   hl, $c211                                   ; $0ebe: $21 $11 $c2
     ld   a, [hl]                                     ; $0ec1: $7e
     xor  $08                                         ; $0ec2: $ee $08
     ld   [hl+], a                                    ; $0ec4: $22
     cp   $68                                         ; $0ec5: $fe $68
-    call z, Call_000_0f17                            ; $0ec7: $cc $17 $0f
+    call z, DisplayTextPushStart                            ; $0ec7: $cc $17 $0f
     inc  l                                           ; $0eca: $2c
     ld   a, [hl]                                     ; $0ecb: $7e
     xor  $01                                         ; $0ecc: $ee $01
@@ -1880,96 +1900,74 @@ jr_000_0f07:
     ret                                              ; $0f16: $c9
 
 
-Call_000_0f17:
+    setcharmap congrats
+
+DisplayTextPushStart:
     push af                                          ; $0f17: $f5
     push hl                                          ; $0f18: $e5
+
     ldh  a, [$d7]                                    ; $0f19: $f0 $d7
     cp   $05                                         ; $0f1b: $fe $05
-    jr   z, jr_000_0f39                              ; $0f1d: $28 $1a
+    jr   z, .done                              ; $0f1d: $28 $1a
 
     ldh  a, [$d8]                                    ; $0f1f: $f0 $d8
     cp   $05                                         ; $0f21: $fe $05
-    jr   z, jr_000_0f39                              ; $0f23: $28 $14
+    jr   z, .done                              ; $0f23: $28 $14
 
-    ldh  a, [hMultiplayerPlayerRole]                                    ; $0f25: $f0 $cb
-    cp   MP_ROLE_MASTER                                         ; $0f27: $fe $29
-    jr   nz, jr_000_0f39                             ; $0f29: $20 $0e
+; master - display PUSH START
+    ldh  a, [hMultiplayerPlayerRole]                             ; $0f25
+    cp   MP_ROLE_MASTER                                          ; $0f27
+    jr   nz, .done                                               ; $0f29
 
-    ld   hl, $c060                                   ; $0f2b: $21 $60 $c0
-    ld   b, $24                                      ; $0f2e: $06 $24
-    ld   de, $0f3c                                   ; $0f30: $11 $3c $0f
+    ld   hl, wOam+OAM_SIZEOF*$18                                 ; $0f2b
+    ld   b, $24                                                  ; $0f2e
+    ld   de, .sprites                                            ; $0f30
 
-jr_000_0f33:
-    ld   a, [de]                                     ; $0f33: $1a
-    ld   [hl+], a                                    ; $0f34: $22
-    inc  de                                          ; $0f35: $13
-    dec  b                                           ; $0f36: $05
-    jr   nz, jr_000_0f33                             ; $0f37: $20 $fa
+.loop:
+    ld   a, [de]                                                 ; $0f33
+    ld   [hl+], a                                                ; $0f34
+    inc  de                                                      ; $0f35
+    dec  b                                                       ; $0f36
+    jr   nz, .loop                                               ; $0f37
 
-jr_000_0f39:
-    pop  hl                                          ; $0f39: $e1
-    pop  af                                          ; $0f3a: $f1
-    ret                                              ; $0f3b: $c9
+.done:
+    pop  hl                                                      ; $0f39
+    pop  af                                                      ; $0f3a
+    ret                                                          ; $0f3b
 
+.sprites:
+    db $42, $30, "P", $00
+	db $42, $38, "U", $00
+	db $42, $40, "S", $00
+	db $42, $48, "H", $00
 
-    ld   b, d                                        ; $0f3c: $42
-    jr   nc, jr_000_0f4c                             ; $0f3d: $30 $0d
-
-    nop                                              ; $0f3f: $00
-    ld   b, d                                        ; $0f40: $42
-    jr   c, @-$4c                                    ; $0f41: $38 $b2
-
-    nop                                              ; $0f43: $00
-    ld   b, d                                        ; $0f44: $42
-    ld   b, b                                        ; $0f45: $40
-    ld   c, $00                                      ; $0f46: $0e $00
-    ld   b, d                                        ; $0f48: $42
-    ld   c, b                                        ; $0f49: $48
-    inc  e                                           ; $0f4a: $1c
-    nop                                              ; $0f4b: $00
-
-jr_000_0f4c:
-    ld   b, d                                        ; $0f4c: $42
-    ld   e, b                                        ; $0f4d: $58
-    ld   c, $00                                      ; $0f4e: $0e $00
-    ld   b, d                                        ; $0f50: $42
-    ld   h, b                                        ; $0f51: $60
-    dec  e                                           ; $0f52: $1d
-    nop                                              ; $0f53: $00
-    ld   b, d                                        ; $0f54: $42
-    ld   l, b                                        ; $0f55: $68
-    or   l                                           ; $0f56: $b5
-    nop                                              ; $0f57: $00
-    ld   b, d                                        ; $0f58: $42
-    ld   [hl], b                                     ; $0f59: $70
-    cp   e                                           ; $0f5a: $bb
-    nop                                              ; $0f5b: $00
-    ld   b, d                                        ; $0f5c: $42
-    ld   a, b                                        ; $0f5d: $78
-    dec  e                                           ; $0f5e: $1d
-    nop                                              ; $0f5f: $00
+	db $42, $58, "S", $00
+	db $42, $60, "T", $00
+	db $42, $68, "A", $00
+	db $42, $70, "R", $00
+	db $42, $78, "T", $00
 
 
-Call_000_0f60:
-    ld   hl, $c060                                   ; $0f60: $21 $60 $c0
-    ld   de, $0004                                   ; $0f63: $11 $04 $00
-    ld   b, $09                                      ; $0f66: $06 $09
-    xor  a                                           ; $0f68: $af
+ClearPushStartText:
+    ld   hl, wOam+OAM_SIZEOF*$18                                 ; $0f60
+    ld   de, $0004                                               ; $0f63
+    ld   b, $09                                                  ; $0f66
+    xor  a                                                       ; $0f68
 
-jr_000_0f69:
-    ld   [hl], a                                     ; $0f69: $77
-    add  hl, de                                      ; $0f6a: $19
-    dec  b                                           ; $0f6b: $05
-    jr   nz, jr_000_0f69                             ; $0f6c: $20 $fb
+.loop:
+    ld   [hl], a                                                 ; $0f69
+    add  hl, de                                                  ; $0f6a
+    dec  b                                                       ; $0f6b
+    jr   nz, .loop                                               ; $0f6c
 
-    ret                                              ; $0f6e: $c9
+    ret                                                          ; $0f6e
 
 
 Call_000_0f6f:
 ; load gfx with LCD off
     call TurnOffLCD                                              ; $0f6f
     ld   hl, Gfx_RocketScene                                     ; $0f72
-    ld   bc, Gfx_RocketScene.end-Gfx_RocketScene+$160            ; $0f75
+    ld   bc, Gfx_RocketScene.end-Gfx_RocketScene+$300            ; $0f75
     call CopyHLtoVramBCbytes                                     ; $0f78
     call FillScreen0FromHLdownWithEmptyTile                      ; $0f7b
 
@@ -1988,8 +1986,6 @@ Call_000_0f6f:
     ldh  a, [hMultiplayerPlayerRole]                             ; $0f91
     cp   MP_ROLE_MASTER                                          ; $0f93
     jr   nz, .afterBGdisplay                                     ; $0f95
-
-    setcharmap congrats
 
 ; is passive - swap mario/luigi text display
     ld   hl, _SCRN0+$41                                          ; $0f97
@@ -2014,8 +2010,6 @@ Call_000_0f6f:
     inc  l                                                       ; $0fb6
     ld   [hl], "O"                                               ; $0fb7
 
-    setcharmap new
-
 .afterBGdisplay:
     ldh  a, [$ef]                                    ; $0fb9: $f0 $ef
     and  a                                           ; $0fbb: $a7
@@ -2035,13 +2029,13 @@ jr_000_0fc1:
     ld   b, $0b                                      ; $0fcd: $06 $0b
     ldh  a, [hMultiplayerPlayerRole]                                    ; $0fcf: $f0 $cb
     cp   MP_ROLE_MASTER                                         ; $0fd1: $fe $29
-    ld   de, $10f3                                   ; $0fd3: $11 $f3 $10
+    ld   de, TextMarioWins                                   ; $0fd3: $11 $f3 $10
     jr   z, jr_000_0fdb                              ; $0fd6: $28 $03
 
-    ld   de, $10fe                                   ; $0fd8: $11 $fe $10
+    ld   de, TextLuigiWins                                   ; $0fd8: $11 $fe $10
 
 jr_000_0fdb:
-    call Call_000_10d8                               ; $0fdb: $cd $d8 $10
+    call CopyAndUnderlineTextDEtoHL_Bbytes                               ; $0fdb: $cd $d8 $10
     ld   a, $04                                      ; $0fde: $3e $04
 
 jr_000_0fe0:
@@ -2067,9 +2061,9 @@ jr_000_0feb:
     ld   c, $01                                      ; $0fff: $0e $01
     call Call_000_106a                               ; $1001: $cd $6a $10
     ld   hl, $98a6                                   ; $1004: $21 $a6 $98
-    ld   de, $1109                                   ; $1007: $11 $09 $11
+    ld   de, TextAdvantage                                   ; $1007: $11 $09 $11
     ld   b, $09                                      ; $100a: $06 $09
-    call Call_000_10d8                               ; $100c: $cd $d8 $10
+    call CopyAndUnderlineTextDEtoHL_Bbytes                               ; $100c: $cd $d8 $10
 
 jr_000_100f:
     ldh  a, [$d8]                                    ; $100f: $f0 $d8
@@ -2083,13 +2077,13 @@ jr_000_100f:
     ld   b, $0b                                      ; $101b: $06 $0b
     ldh  a, [hMultiplayerPlayerRole]                                    ; $101d: $f0 $cb
     cp   MP_ROLE_MASTER                                         ; $101f: $fe $29
-    ld   de, $10fe                                   ; $1021: $11 $fe $10
+    ld   de, TextLuigiWins                                   ; $1021: $11 $fe $10
     jr   z, jr_000_1029                              ; $1024: $28 $03
 
-    ld   de, $10f3                                   ; $1026: $11 $f3 $10
+    ld   de, TextMarioWins                                   ; $1026: $11 $f3 $10
 
 jr_000_1029:
-    call Call_000_10d8                               ; $1029: $cd $d8 $10
+    call CopyAndUnderlineTextDEtoHL_Bbytes                               ; $1029: $cd $d8 $10
     ld   a, $04                                      ; $102c: $3e $04
 
 jr_000_102e:
@@ -2121,15 +2115,15 @@ jr_000_1052:
     jr   z, .turnOnLCDandClearOam                              ; $1055: $28 $0b
 
     ld   hl, $98a7                                   ; $1057: $21 $a7 $98
-    ld   de, $10ed                                   ; $105a: $11 $ed $10
+    ld   de, TextDeuce                                   ; $105a: $11 $ed $10
     ld   b, $06                                      ; $105d: $06 $06
-    call Call_000_10d8                               ; $105f: $cd $d8 $10
+    call CopyAndUnderlineTextDEtoHL_Bbytes                               ; $105f: $cd $d8 $10
 
 .turnOnLCDandClearOam:
-    ld   a, LCDCF_ON|LCDCF_WIN9C00|LCDCF_BG8000|LCDCF_OBJON|LCDCF_BGON                                      ; $1062: $3e $d3
-    ldh  [rLCDC], a                                  ; $1064: $e0 $40
-    call Clear_wOam                               ; $1066: $cd $8a $17
-    ret                                              ; $1069: $c9
+    ld   a, LCDCF_ON|LCDCF_WIN9C00|LCDCF_BG8000|LCDCF_OBJON|LCDCF_BGON ; $1062
+    ldh  [rLCDC], a                                              ; $1064
+    call Clear_wOam                                              ; $1066
+    ret                                                          ; $1069
 
 
 Call_000_106a:
@@ -2208,7 +2202,6 @@ jr_000_10b5:
     ldh  [$da], a                                    ; $10b8: $e0 $da
     ret                                              ; $10ba: $c9
 
-
 jr_000_10bb:
     ld   a, [hl]                                     ; $10bb: $7e
     cp   $04                                         ; $10bc: $fe $04
@@ -2220,7 +2213,6 @@ jr_000_10c2:
     xor  a                                           ; $10c2: $af
     ldh  [$db], a                                    ; $10c3: $e0 $db
     ret                                              ; $10c5: $c9
-
 
 jr_000_10c6:
     ldh  [$da], a                                    ; $10c6: $e0 $da
@@ -2241,66 +2233,56 @@ jr_000_10d1:
     jr   jr_000_10ac                                 ; $10d6: $18 $d4
 
 
-Call_000_10d8:
-    push bc                                          ; $10d8: $c5
-    push hl                                          ; $10d9: $e5
+CopyAndUnderlineTextDEtoHL_Bbytes:
+    push bc                                                      ; $10d8
+    push hl                                                      ; $10d9
 
-jr_000_10da:
-    ld   a, [de]                                     ; $10da: $1a
-    ld   [hl+], a                                    ; $10db: $22
-    inc  de                                          ; $10dc: $13
-    dec  b                                           ; $10dd: $05
-    jr   nz, jr_000_10da                             ; $10de: $20 $fa
+; copy DE to HL B bytes
+.copyText:
+    ld   a, [de]                                                 ; $10da
+    ld   [hl+], a                                                ; $10db
+    inc  de                                                      ; $10dc
+    dec  b                                                       ; $10dd
+    jr   nz, .copyText                                           ; $10de
 
-    pop  hl                                          ; $10e0: $e1
-    ld   de, $0020                                   ; $10e1: $11 $20 $00
-    add  hl, de                                      ; $10e4: $19
-    pop  bc                                          ; $10e5: $c1
-    ld   a, $b6                                      ; $10e6: $3e $b6
+; to next row
+    pop  hl                                                      ; $10e0
+    ld   de, GB_TILE_WIDTH                                       ; $10e1
+    add  hl, de                                                  ; $10e4
+    pop  bc                                                      ; $10e5
+    ld   a, "_"                                                  ; $10e6
 
-jr_000_10e8:
-    ld   [hl+], a                                    ; $10e8: $22
-    dec  b                                           ; $10e9: $05
-    jr   nz, jr_000_10e8                             ; $10ea: $20 $fc
+; underline text same B bytes
+.underlineText:
+    ld   [hl+], a                                                ; $10e8
+    dec  b                                                       ; $10e9
+    jr   nz, .underlineText                                      ; $10ea
 
-    ret                                              ; $10ec: $c9
+    ret                                                          ; $10ec
 
 
-    or   b                                           ; $10ed: $b0
-    or   c                                           ; $10ee: $b1
-    or   d                                           ; $10ef: $b2
-    or   e                                           ; $10f0: $b3
-    or   c                                           ; $10f1: $b1
-    ld   a, $b4                                      ; $10f2: $3e $b4
-    or   l                                           ; $10f4: $b5
-    cp   e                                           ; $10f5: $bb
-    ld   l, $bc                                      ; $10f6: $2e $bc
-    cpl                                              ; $10f8: $2f
-    dec  l                                           ; $10f9: $2d
-    ld   l, $3d                                      ; $10fa: $2e $3d
-    ld   c, $3e                                      ; $10fc: $0e $3e
-    cp   l                                           ; $10fe: $bd
-    or   d                                           ; $10ff: $b2
-    ld   l, $be                                      ; $1100: $2e $be
-    ld   l, $2f                                      ; $1102: $2e $2f
-    dec  l                                           ; $1104: $2d
-    ld   l, $3d                                      ; $1105: $2e $3d
-    ld   c, $3e                                      ; $1107: $0e $3e
-    or   l                                           ; $1109: $b5
-    or   b                                           ; $110a: $b0
-    ld   b, c                                        ; $110b: $41
-    or   l                                           ; $110c: $b5
-    dec  a                                           ; $110d: $3d
-    dec  e                                           ; $110e: $1d
-    or   l                                           ; $110f: $b5
-    cp   [hl]                                        ; $1110: $be
-    or   c                                           ; $1111: $b1
+TextDeuce:
+    db "DEUCE!"
+    
+    
+TextMarioWins:
+    db "MARIO WINS!"
+
+
+TextLuigiWins:
+    db "LUIGI WINS!"
+    
+
+TextAdvantage:
+    db "ADVANTAGE"
+
+    setcharmap new
 
 
 GameState1f_Post2PlayerResults:
 ; no serial
-    ld   a, IEF_VBLANK                                      ; $1112: $3e $01
-    ldh  [rIE], a                                    ; $1114: $e0 $ff
+    ld   a, IEF_VBLANK                                           ; $1112
+    ldh  [rIE], a                                                ; $1114
 
 ; proceed when timer is 0
     ldh  a, [hTimer1]                                    ; $1116: $f0 $a6
@@ -2311,62 +2293,78 @@ GameState1f_Post2PlayerResults:
     call Clear_wOam                               ; $111a: $cd $8a $17
     xor  a                                           ; $111d: $af
     ldh  [$ef], a                                    ; $111e: $e0 $ef
-    ld   b, $27                                      ; $1120: $06 $27
-    ld   c, $79                                      ; $1122: $0e $79
-    call Call_000_113f                               ; $1124: $cd $3f $11
-    call ThunkInitSound                                       ; $1127: $cd $f3 $7f
+
+; dont proceed until both players in this state
+    ld   b, $27                                                  ; $1120
+    ld   c, $79                                                  ; $1122
+    call ReturnFromCallersContextUntilBothPlayersCommunicatingBC ; $1124
+
+    call ThunkInitSound                                          ; $1127
+
+;
     ldh  a, [$d7]                                    ; $112a: $f0 $d7
     cp   $05                                         ; $112c: $fe $05
-    jr   z, jr_000_113a                              ; $112e: $28 $0a
+    jr   z, .winnerOfRoundsChosen                              ; $112e: $28 $0a
 
     ldh  a, [$d8]                                    ; $1130: $f0 $d8
     cp   $05                                         ; $1132: $fe $05
-    jr   z, jr_000_113a                              ; $1134: $28 $04
+    jr   z, .winnerOfRoundsChosen                              ; $1134: $28 $04
 
 ; set game finished so we can jump back into it soon
-    ld   a, $01                                      ; $1136: $3e $01
-    ldh  [h2PlayerGameFinished], a                                    ; $1138: $e0 $d6
+    ld   a, $01                                                  ; $1136
+    ldh  [h2PlayerGameFinished], a                               ; $1138
 
-jr_000_113a:
-    ld   a, GS_MARIO_LUIGI_SCREEN_INIT                                      ; $113a: $3e $16
-    ldh  [hGameState], a                                    ; $113c: $e0 $e1
-    ret                                              ; $113e: $c9
+.winnerOfRoundsChosen:
+    ld   a, GS_MARIO_LUIGI_SCREEN_INIT                           ; $113a
+    ldh  [hGameState], a                                         ; $113c
+    ret                                                          ; $113e
 
 
-Call_000_113f:
-    ldh  a, [hSerialInterruptHandled]                                    ; $113f: $f0 $cc
-    and  a                                           ; $1141: $a7
-    jr   z, jr_000_1158                              ; $1142: $28 $14
+; in: B - byte passive sends when hasn't received master's C
+; in: C - byte master sends when master has seen passive's B
+; pop hl is done for a player if it hasn't read the other player's b/c
+ReturnFromCallersContextUntilBothPlayersCommunicatingBC:
+; done if no interrupt handled
+    ldh  a, [hSerialInterruptHandled]                            ; $113f
+    and  a                                                       ; $1141
+    jr   z, .done                                                ; $1142
 
-    xor  a                                           ; $1144: $af
-    ldh  [hSerialInterruptHandled], a                                    ; $1145: $e0 $cc
-    ldh  a, [hMultiplayerPlayerRole]                                    ; $1147: $f0 $cb
-    cp   MP_ROLE_MASTER                                         ; $1149: $fe $29
-    ldh  a, [hSerialByteRead]                                    ; $114b: $f0 $d0
-    jr   nz, jr_000_1160                             ; $114d: $20 $11
+    xor  a                                                       ; $1144
+    ldh  [hSerialInterruptHandled], a                            ; $1145
 
-    cp   b                                           ; $114f: $b8
-    jr   z, jr_000_115a                              ; $1150: $28 $08
+; if master, ..
+    ldh  a, [hMultiplayerPlayerRole]                             ; $1147
+    cp   MP_ROLE_MASTER                                          ; $1149
+    ldh  a, [hSerialByteRead]                                    ; $114b
+    jr   nz, .passive                                            ; $114d
 
-    ld   a, $02                                      ; $1152: $3e $02
-    ldh  [hNextSerialByteToLoad], a                                    ; $1154: $e0 $cf
-    ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $1156: $e0 $ce
+; if loaded byte is B (when passive hasn't read our C), send C
+    cp   b                                                       ; $114f
+    jr   z, .masterSendC                                         ; $1150
 
-jr_000_1158:
-    pop  hl                                          ; $1158: $e1
-    ret                                              ; $1159: $c9
+; else send 2 and return from caller's loop
+    ld   a, $02                                                  ; $1152
+    ldh  [hNextSerialByteToLoad], a                              ; $1154
+    ldh  [hMasterShouldSerialTransferInVBlank], a                ; $1156
 
-jr_000_115a:
-    ld   a, c                                        ; $115a: $79
-    ldh  [hNextSerialByteToLoad], a                                    ; $115b: $e0 $cf
-    ldh  [hMasterShouldSerialTransferInVBlank], a                                    ; $115d: $e0 $ce
-    ret                                              ; $115f: $c9
+.done:
+    pop  hl                                                      ; $1158
+    ret                                                          ; $1159
 
-jr_000_1160:
-    cp   c                                           ; $1160: $b9
-    ret  z                                           ; $1161: $c8
+.masterSendC:
+    ld   a, c                                                    ; $115a
+    ldh  [hNextSerialByteToLoad], a                              ; $115b
+    ldh  [hMasterShouldSerialTransferInVBlank], a                ; $115d
+    ret                                                          ; $115f
 
-    ld   a, b                                        ; $1162: $78
-    ldh  [hNextSerialByteToLoad], a                                    ; $1163: $e0 $cf
-    pop  hl                                          ; $1165: $e1
-    ret                                              ; $1166: $c9
+.passive:
+; if passive and byte read is C (from master's send above), return
+    cp   c                                                       ; $1160
+    ret  z                                                       ; $1161
+
+; else send B, eg if its 2, due to master not receiving our B yet
+; and return from caller's loop
+    ld   a, b                                                    ; $1162
+    ldh  [hNextSerialByteToLoad], a                              ; $1163
+    pop  hl                                                      ; $1165
+    ret                                                          ; $1166

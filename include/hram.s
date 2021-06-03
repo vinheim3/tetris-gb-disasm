@@ -268,8 +268,23 @@ hffe7:
 hJustSetHighScoreAndCopiedToRamBuffer:: ; $ffe8
     db
 
-hffe9:
-    ds $f0-$e9
+hIsRecordingDemo:: ; $ffe9
+    db
+
+hFramesUntilNextDemoInput:: ; $ffea
+    db
+
+hAddressOfDemoInput:: ; $ffeb
+    dw
+
+hDemoButtonsHeld:: ; $ffed
+    db
+
+hActualUserButtonsHeldDuringDemo:: ; $ffee
+    db
+
+hffef:
+    ds $f0-$ef
 
 hPassiveShouldUpdateMusicOamAndPlaySong:: ; $fff0
     db

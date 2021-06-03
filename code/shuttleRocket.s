@@ -48,7 +48,7 @@ DisplayRocketScene:
 ; display gfx with lcd off
     call TurnOffLCD                                              ; $11b2
     ld   hl, Gfx_RocketScene                                     ; $11b5
-    ld   bc, Gfx_RocketScene.end-Gfx_RocketScene+$160            ; $11b8
+    ld   bc, Gfx_RocketScene.end-Gfx_RocketScene+$300            ; $11b8
     call CopyHLtoVramBCbytes                                     ; $11bb
 
 ; displayed on _SCRN1

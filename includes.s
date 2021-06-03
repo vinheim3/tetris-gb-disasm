@@ -61,11 +61,18 @@ charmap "<...>", $60
 charmap "<end>", $ff
 
 newcharmap congrats
+charmap "P", $0d
 charmap "S", $0e
+charmap "H", $1c
 charmap "T", $1d
+charmap "W", $2d
 charmap "I", $2e
+charmap " ", $2f
 charmap "!", $3e
 charmap "N", $3d
+charmap "V", $41
+charmap "D", $b0
+charmap "E", $b1
 charmap "U", $b2
 charmap "C", $b3
 charmap "M", $b4

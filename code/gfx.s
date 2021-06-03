@@ -444,34 +444,44 @@ GetScreen0AddressOfPieceSquare:
 	ret                                                             ; $2a0f
 
 
-; unused
-	ldh  a, [hCurrPieceSquareScreen0Addr+1]                                    ; $2a10: $f0 $b5
-	ld   d, a                                        ; $2a12: $57
-	ldh  a, [hCurrPieceSquareScreen0Addr]                                    ; $2a13: $f0 $b4
-	ld   e, a                                        ; $2a15: $5f
-	ld   b, $04                                      ; $2a16: $06 $04
+UnusedMovePieceUpAndRight:
+; get address of current piece square in DE
+	ldh  a, [hCurrPieceSquareScreen0Addr+1]                         ; $2a10
+	ld   d, a                                                       ; $2a12
+	ldh  a, [hCurrPieceSquareScreen0Addr]                           ; $2a13
+	ld   e, a                                                       ; $2a15
+	ld   b, $04                                                     ; $2a16
 
-jr_000_2a18:
-	rr   d                                           ; $2a18: $cb $1a
-	rr   e                                           ; $2a1a: $cb $1b
-	dec  b                                           ; $2a1c: $05
-	jr   nz, jr_000_2a18                             ; $2a1d: $20 $f9
+.deDiv16:
+	rr   d                                                          ; $2a18
+	rr   e                                                          ; $2a1a
+	dec  b                                                          ; $2a1c
+	jr   nz, .deDiv16                                               ; $2a1d
 
-	ld   a, e                                        ; $2a1f: $7b
-	sub  $84                                         ; $2a20: $d6 $84
-	and  $fe                                         ; $2a22: $e6 $fe
-	rlca                                             ; $2a24: $07
-	rlca                                             ; $2a25: $07
-	add  $08                                         ; $2a26: $c6 $08
-	ldh  [hCurrPieceSquarePixelY], a                                    ; $2a28: $e0 $b2
-	ldh  a, [hCurrPieceSquareScreen0Addr]                                    ; $2a2a: $f0 $b4
-	and  $1f                                         ; $2a2c: $e6 $1f
-	rla                                              ; $2a2e: $17
-	rla                                              ; $2a2f: $17
-	rla                                              ; $2a30: $17
-	add  $08                                         ; $2a31: $c6 $08
-	ldh  [hCurrPieceSquarePixelX], a                                    ; $2a33: $e0 $b3
-	ret                                              ; $2a35: $c9
+; de is now $0980-$09bf, -$84 to remove 1st 2 rows
+	ld   a, e                                                       ; $2a1f
+	sub  $84                                                        ; $2a20
+
+; and $fe as game pieces on left side of screen, ie A is now row*2
+	and  $fe                                                        ; $2a22
+
+; A = row (from 3rd) * 8 + 8 (so 3rd row to 2nd row), then store
+	rlca                                                            ; $2a24
+	rlca                                                            ; $2a25
+	add  $08                                                        ; $2a26
+	ldh  [hCurrPieceSquarePixelY], a                                ; $2a28
+
+; get col, * 8
+	ldh  a, [hCurrPieceSquareScreen0Addr]                           ; $2a2a
+	and  $1f                                                        ; $2a2c
+	rla                                                             ; $2a2e
+	rla                                                             ; $2a2f
+	rla                                                             ; $2a30
+
+; add 8 and store
+	add  $08                                                        ; $2a31
+	ldh  [hCurrPieceSquarePixelX], a                                ; $2a33
+	ret                                                             ; $2a35
 
 
 DisplayBCDNum6DigitsIfForced:

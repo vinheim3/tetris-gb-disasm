@@ -2,12 +2,12 @@
 
 
 ; file          | done | remaining
-; bank_000      |  834 |  202
-; BType         |  257 |    0
-; gfx           |  404 |   24
-; inGameFlow    |  811 |   36
-; introScreens  |  183 |   36
-; menuScreens   |  785 |    0
-; multiplayer   |  379 | 1175
-; shuttleRocket |  349 |    0
-; soundEngine   | 1101 |    0
+; bank_000      |  952 |  84 (multiplayer, serial)
+; BType         |  257 |   0
+; gfx           |  428 |   0
+; inGameFlow    |  811 |  36 (multiplayer, [d3], [dc])
+; introScreens  |  219 |   0
+; menuScreens   |  785 |   0
+; multiplayer   |  500 | 993 (various)
+; shuttleRocket |  349 |   0
+; soundEngine   | 1101 |   0

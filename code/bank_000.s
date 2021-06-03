@@ -642,164 +642,194 @@ ProcessGameState:
 INCLUDE "code/introScreens.s"
 
 
-todo_demoRelated_050c:
-	ldh  a, [hPrevOrCurrDemoPlayed]                                    ; $050c: $f0 $e4
-	and  a                                           ; $050e: $a7
-	ret  z                                           ; $050f: $c8
+DemoSendPingsAndEndAfterAllStepsDone:
+	ldh  a, [hPrevOrCurrDemoPlayed]                                 ; $050c
+	and  a                                                          ; $050e
+	ret  z                                                          ; $050f
 
-; demo is being played
-	call SerialTransferWaitFunc                               ; $0510: $cd $98 $0a
-	xor  a                                           ; $0513: $af
-	ldh  [rSB], a                                    ; $0514: $e0 $01
-	ld   a, SC_REQUEST_TRANSFER|SC_PASSIVE                                      ; $0516: $3e $80
-	ldh  [rSC], a                                    ; $0518: $e0 $02
+; demo is being played, passively ping 0s (master on title screen isn't assigned master)
+	call SerialTransferWaitFunc                                     ; $0510
+	lda SB_PASSIVE_PING_IN_DEMO                                     ; $0513
+	ldh  [rSB], a                                                   ; $0514
+	ld   a, SC_REQUEST_TRANSFER|SC_PASSIVE                          ; $0516
+	ldh  [rSC], a                                                   ; $0518
 
-;
-	ldh  a, [hButtonsPressed]                                    ; $051a: $f0 $81
-	bit  PADB_START, a                                        ; $051c: $cb $5f
-	jr   z, .startNotPressed                              ; $051e: $28 $0d
+; if start pressed..
+	ldh  a, [hButtonsPressed]                                       ; $051a
+	bit  PADB_START, a                                              ; $051c
+	jr   z, .startNotPressed                                        ; $051e
 
-; start pressed
-	ld   a, SB_ENDED_GAME_DEMO                                      ; $0520: $3e $33
-	ldh  [rSB], a                                    ; $0522: $e0 $01
-	ld   a, SC_REQUEST_TRANSFER|SC_MASTER                                      ; $0524: $3e $81
-	ldh  [rSC], a                                    ; $0526: $e0 $02
-	ld   a, GS_TITLE_SCREEN_INIT                                      ; $0528: $3e $06
-	ldh  [hGameState], a                                    ; $052a: $e0 $e1
-	ret                                              ; $052c: $c9
+; send that we've ended demo
+	ld   a, SB_ENDED_GAME_DEMO                                      ; $0520
+	ldh  [rSB], a                                                   ; $0522
+	ld   a, SC_REQUEST_TRANSFER|SC_MASTER                           ; $0524
+	ldh  [rSC], a                                                   ; $0526
+	ld   a, GS_TITLE_SCREEN_INIT                                    ; $0528
+	ldh  [hGameState], a                                            ; $052a
+	ret                                                             ; $052c
 
 .startNotPressed:
-	ld   hl, hLowByteOfCurrDemoStepAddress                                   ; $052d: $21 $b0 $ff
-	ldh  a, [hPrevOrCurrDemoPlayed]                                    ; $0530: $f0 $e4
-	cp   $02                                         ; $0532: $fe $02
-	ld   b, $10                                      ; $0534: $06 $10
-	jr   z, jr_000_053a                              ; $0536: $28 $02
+; based on demo, ret if demo step is not past $10/$1d
+	ld   hl, hLowByteOfCurrDemoStepAddress                          ; $052d
+	ldh  a, [hPrevOrCurrDemoPlayed]                                 ; $0530
+	cp   $02                                                        ; $0532
+	ld   b, $10                                                     ; $0534
+	jr   z, .endIfDoneBSteps                                        ; $0536
 
-	ld   b, $1d                                      ; $0538: $06 $1d
+	ld   b, $1d                                                     ; $0538
 
-jr_000_053a:
-	ld   a, [hl]                                     ; $053a: $7e
-	cp   b                                           ; $053b: $b8
-	ret  nz                                          ; $053c: $c0
+.endIfDoneBSteps:
+	ld   a, [hl]                                                    ; $053a
+	cp   b                                                          ; $053b
+	ret  nz                                                         ; $053c
 
-	ld   a, GS_TITLE_SCREEN_INIT                                      ; $053d: $3e $06
-	ldh  [hGameState], a                                    ; $053f: $e0 $e1
-	ret                                              ; $0541: $c9
-
-
-todo_demoRelated_0542:
-	ldh  a, [hPrevOrCurrDemoPlayed]                                    ; $0542: $f0 $e4
-	and  a                                           ; $0544: $a7
-	ret  z                                           ; $0545: $c8
-
-; demo played
-	ldh  a, [$e9]                                    ; $0546: $f0 $e9
-	cp   $ff                                         ; $0548: $fe $ff
-	ret  z                                           ; $054a: $c8
-
-	ldh  a, [$ea]                                    ; $054b: $f0 $ea
-	and  a                                           ; $054d: $a7
-	jr   z, jr_000_0555                              ; $054e: $28 $05
-
-	dec  a                                           ; $0550: $3d
-	ldh  [$ea], a                                    ; $0551: $e0 $ea
-	jr   jr_000_0571                                 ; $0553: $18 $1c
-
-jr_000_0555:
-	ldh  a, [$eb]                                    ; $0555: $f0 $eb
-	ld   h, a                                        ; $0557: $67
-	ldh  a, [$ec]                                    ; $0558: $f0 $ec
-	ld   l, a                                        ; $055a: $6f
-	ld   a, [hl+]                                    ; $055b: $2a
-	ld   b, a                                        ; $055c: $47
-	ldh  a, [$ed]                                    ; $055d: $f0 $ed
-	xor  b                                           ; $055f: $a8
-	and  b                                           ; $0560: $a0
-	ldh  [hButtonsPressed], a                                    ; $0561: $e0 $81
-	ld   a, b                                        ; $0563: $78
-	ldh  [$ed], a                                    ; $0564: $e0 $ed
-	ld   a, [hl+]                                    ; $0566: $2a
-	ldh  [$ea], a                                    ; $0567: $e0 $ea
-	ld   a, h                                        ; $0569: $7c
-	ldh  [$eb], a                                    ; $056a: $e0 $eb
-	ld   a, l                                        ; $056c: $7d
-	ldh  [$ec], a                                    ; $056d: $e0 $ec
-	jr   jr_000_0574                                 ; $056f: $18 $03
-
-jr_000_0571:
-	xor  a                                           ; $0571: $af
-	ldh  [hButtonsPressed], a                                    ; $0572: $e0 $81
-
-jr_000_0574:
-	ldh  a, [hButtonsHeld]                                    ; $0574: $f0 $80
-	ldh  [$ee], a                                    ; $0576: $e0 $ee
-	ldh  a, [$ed]                                    ; $0578: $f0 $ed
-	ldh  [hButtonsHeld], a                                    ; $057a: $e0 $80
-	ret                                              ; $057c: $c9
+; else go to title screen
+	ld   a, GS_TITLE_SCREEN_INIT                                    ; $053d
+	ldh  [hGameState], a                                            ; $053f
+	ret                                                             ; $0541
 
 
-	xor  a                                           ; $057d: $af
-	ldh  [$ed], a                                    ; $057e: $e0 $ed
-	jr   jr_000_0571                                 ; $0580: $18 $ef
+DemoPollInput:
+; proceed if demo played
+	ldh  a, [hPrevOrCurrDemoPlayed]                                 ; $0542
+	and  a                                                          ; $0544
+	ret  z                                                          ; $0545
 
-	ret                                              ; $0582: $c9
+; return if recording demo
+	ldh  a, [hIsRecordingDemo]                                      ; $0546
+	cp   $ff                                                        ; $0548
+	ret  z                                                          ; $054a
+
+; once timer is 0, do main bit
+	ldh  a, [hFramesUntilNextDemoInput]                             ; $054b
+	and  a                                                          ; $054d
+	jr   z, .mainBit                                                ; $054e
+
+; else dec timer
+	dec  a                                                          ; $0550
+	ldh  [hFramesUntilNextDemoInput], a                             ; $0551
+	jr   .clearButtonsPressedSetButtonsHeld                         ; $0553
+
+.mainBit:
+; get next input address
+	ldh  a, [hAddressOfDemoInput]                                   ; $0555
+	ld   h, a                                                       ; $0557
+	ldh  a, [hAddressOfDemoInput+1]                                 ; $0558
+	ld   l, a                                                       ; $055a
+
+; next input in B
+	ld   a, [hl+]                                                   ; $055b
+	ld   b, a                                                       ; $055c
+
+; process buttons pressed as normal
+	ldh  a, [hDemoButtonsHeld]                                      ; $055d
+	xor  b                                                          ; $055f
+	and  b                                                          ; $0560
+	ldh  [hButtonsPressed], a                                       ; $0561
+
+; store next input
+	ld   a, b                                                       ; $0563
+	ldh  [hDemoButtonsHeld], a                                      ; $0564
+
+; next byte is frames until next input
+	ld   a, [hl+]                                                   ; $0566
+	ldh  [hFramesUntilNextDemoInput], a                             ; $0567
+
+; store current address of next data
+	ld   a, h                                                       ; $0569
+	ldh  [hAddressOfDemoInput], a                                   ; $056a
+	ld   a, l                                                       ; $056c
+	ldh  [hAddressOfDemoInput+1], a                                 ; $056d
+	jr   .end                                                       ; $056f
+
+.clearButtonsPressedSetButtonsHeld:
+	xor  a                                                          ; $0571
+	ldh  [hButtonsPressed], a                                       ; $0572
+
+.end:
+; store buttons held, eg for pressing Start, and process as if demo buttons held
+	ldh  a, [hButtonsHeld]                                          ; $0574
+	ldh  [hActualUserButtonsHeldDuringDemo], a                      ; $0576
+	ldh  a, [hDemoButtonsHeld]                                      ; $0578
+	ldh  [hButtonsHeld], a                                          ; $057a
+	ret                                                             ; $057c
 
 
-todo_demoRelated_0583:
-	ldh  a, [hPrevOrCurrDemoPlayed]                                    ; $0583: $f0 $e4
-	and  a                                           ; $0585: $a7
-	ret  z                                           ; $0586: $c8
+UnusedClearDemoButtonsHeld:
+	xor  a                                                          ; $057d
+	ldh  [hDemoButtonsHeld], a                                      ; $057e
+	jr   DemoPollInput.clearButtonsPressedSetButtonsHeld            ; $0580
 
-; demo played
-	ldh  a, [$e9]                                    ; $0587: $f0 $e9
-	cp   $ff                                         ; $0589: $fe $ff
-	ret  nz                                          ; $058b: $c0
-
-	ldh  a, [hButtonsHeld]                                    ; $058c: $f0 $80
-	ld   b, a                                        ; $058e: $47
-	ldh  a, [$ed]                                    ; $058f: $f0 $ed
-	cp   b                                           ; $0591: $b8
-	jr   z, jr_000_05ad                              ; $0592: $28 $19
-
-	ldh  a, [$eb]                                    ; $0594: $f0 $eb
-	ld   h, a                                        ; $0596: $67
-	ldh  a, [$ec]                                    ; $0597: $f0 $ec
-	ld   l, a                                        ; $0599: $6f
-	ldh  a, [$ed]                                    ; $059a: $f0 $ed
-	ld   [hl+], a                                    ; $059c: $22
-	ldh  a, [$ea]                                    ; $059d: $f0 $ea
-	ld   [hl+], a                                    ; $059f: $22
-	ld   a, h                                        ; $05a0: $7c
-	ldh  [$eb], a                                    ; $05a1: $e0 $eb
-	ld   a, l                                        ; $05a3: $7d
-	ldh  [$ec], a                                    ; $05a4: $e0 $ec
-	ld   a, b                                        ; $05a6: $78
-	ldh  [$ed], a                                    ; $05a7: $e0 $ed
-	xor  a                                           ; $05a9: $af
-	ldh  [$ea], a                                    ; $05aa: $e0 $ea
-	ret                                              ; $05ac: $c9
+	ret                                                             ; $0582
 
 
-jr_000_05ad:
-	ldh  a, [$ea]                                    ; $05ad: $f0 $ea
-	inc  a                                           ; $05af: $3c
-	ldh  [$ea], a                                    ; $05b0: $e0 $ea
-	ret                                              ; $05b2: $c9
+DemoRecordInput:
+; proceed if demo played
+	ldh  a, [hPrevOrCurrDemoPlayed]                                 ; $0583
+	and  a                                                          ; $0585
+	ret  z                                                          ; $0586
+
+; proceed if recording
+	ldh  a, [hIsRecordingDemo]                                      ; $0587
+	cp   $ff                                                        ; $0589
+	ret  nz                                                         ; $058b
+
+; if buttons held == current demo buttons held, inc timer
+	ldh  a, [hButtonsHeld]                                          ; $058c
+	ld   b, a                                                       ; $058e
+	ldh  a, [hDemoButtonsHeld]                                      ; $058f
+	cp   b                                                          ; $0591
+	jr   z, .incFrames                                              ; $0592
+
+; else get demo input address
+	ldh  a, [hAddressOfDemoInput]                                   ; $0594
+	ld   h, a                                                       ; $0596
+	ldh  a, [hAddressOfDemoInput+1]                                 ; $0597
+	ld   l, a                                                       ; $0599
+
+; store buttons held and frames until next demo input in that address
+	ldh  a, [hDemoButtonsHeld]                                      ; $059a
+	ld   [hl+], a                                                   ; $059c
+	ldh  a, [hFramesUntilNextDemoInput]                             ; $059d
+	ld   [hl+], a                                                   ; $059f
+
+; store demo input address
+	ld   a, h                                                       ; $05a0
+	ldh  [hAddressOfDemoInput], a                                   ; $05a1
+	ld   a, l                                                       ; $05a3
+	ldh  [hAddressOfDemoInput+1], a                                 ; $05a4
+
+; store buttons held
+	ld   a, b                                                       ; $05a6
+	ldh  [hDemoButtonsHeld], a                                      ; $05a7
+
+; clear frames until next
+	xor  a                                                          ; $05a9
+	ldh  [hFramesUntilNextDemoInput], a                             ; $05aa
+	ret                                                             ; $05ac
+
+.incFrames:
+	ldh  a, [hFramesUntilNextDemoInput]                             ; $05ad
+	inc  a                                                          ; $05af
+	ldh  [hFramesUntilNextDemoInput], a                             ; $05b0
+	ret                                                             ; $05b2
 
 
-todo_demoRelated_05b3:
-	ldh  a, [hPrevOrCurrDemoPlayed]                                    ; $05b3: $f0 $e4
-	and  a                                           ; $05b5: $a7
-	ret  z                                           ; $05b6: $c8
+DemoRestorePlayerButtonsHeld:
+; proceed if demo played
+	ldh  a, [hPrevOrCurrDemoPlayed]                                 ; $05b3
+	and  a                                                          ; $05b5
+	ret  z                                                          ; $05b6
 
-; demo played
-	ldh  a, [$e9]                                    ; $05b7: $f0 $e9
-	and  a                                           ; $05b9: $a7
-	ret  nz                                          ; $05ba: $c0
+; return if recording demo
+	ldh  a, [hIsRecordingDemo]                                      ; $05b7
+	and  a                                                          ; $05b9
+	ret  nz                                                         ; $05ba
 
-	ldh  a, [$ee]                                    ; $05bb: $f0 $ee
-	ldh  [hButtonsHeld], a                                    ; $05bd: $e0 $80
-	ret                                              ; $05bf: $c9
+; store ee in buttons held
+	ldh  a, [hActualUserButtonsHeldDuringDemo]                      ; $05bb
+	ldh  [hButtonsHeld], a                                          ; $05bd
+	ret                                                             ; $05bf
 
 
 
@@ -1213,10 +1243,10 @@ GameState00_InGameMain:
 	and  a                                                          ; $1bd3
 	ret  nz                                                         ; $1bd4
 
-;
-	call todo_demoRelated_050c                               ; $1bd5: $cd $0c $05
-	call todo_demoRelated_0542                               ; $1bd8: $cd $42 $05
-	call todo_demoRelated_0583                               ; $1bdb: $cd $83 $05
+; run demo funcs to manip pieces
+	call DemoSendPingsAndEndAfterAllStepsDone                       ; $1bd5
+	call DemoPollInput                                              ; $1bd8
+	call DemoRecordInput                                            ; $1bdb
 
 ; regular main loop
 	call InGameCheckButtonsPressed                                  ; $1bde
@@ -1226,9 +1256,9 @@ GameState00_InGameMain:
 	call ShiftEntireGameRamBufferDownARow                           ; $1bea
 	call AddOnCompletedLinesScore                                   ; $1bed
 
-;
-	call todo_demoRelated_05b3                               ; $1bf0: $cd $b3 $05
-	ret                                              ; $1bf3: $c9
+; restore buttons held eg to exit
+	call DemoRestorePlayerButtonsHeld                               ; $1bf0
+	ret                                                             ; $1bf3
 
 
 InGameCheckResetAndPause:

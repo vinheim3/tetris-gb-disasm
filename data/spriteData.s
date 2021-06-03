@@ -140,7 +140,7 @@ jr_000_2c33:
 	ldh  a, [$dc]                                    ; $2c3f: $f0 $dc
 	dec  l                                           ; $2c41: $2d
 	RST_JumpTable                                         ; $2c42: $ef
-	ldh  a, [$eb]                                    ; $2c43: $f0 $eb
+	ldh  a, [hAddressOfDemoInput]                                    ; $2c43: $f0 $eb
 	dec  l                                           ; $2c45: $2d
 	RST_JumpTable                                         ; $2c46: $ef
 	ldh  a, [h1stHighScoreHighestByteForLevel+1]                                    ; $2c47: $f0 $fc
@@ -178,7 +178,7 @@ jr_000_2c33:
 	ldh  a, [rAUD3LEVEL]                                  ; $2c83: $f0 $1c
 	cpl                                              ; $2c85: $2f
 	RST_JumpTable                                         ; $2c86: $ef
-	ldh  a, [$ec]                                    ; $2c87: $f0 $ec
+	ldh  a, [hAddressOfDemoInput+1]                                    ; $2c87: $f0 $ec
 	ld   l, $ef                                      ; $2c89: $2e $ef
 	ldh  a, [$fa]                                    ; $2c8b: $f0 $fa
 	ld   l, $ef                                      ; $2c8d: $2e $ef

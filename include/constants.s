@@ -163,13 +163,17 @@ SB_PASSIVES_PING_IN_TITLE_SCREEN EQU $55
 ; SB bytes - game/music type screen
 SB_PASSIVES_PING_IN_MUSIC_SCREEN EQU $39
 SB_GAME_MUSIC_SCREEN_TO_NEXT EQU $50
-; master can also send a byte for music type chosen
+; master/passive can also send a byte for music type chosen
 
 ; Mario/Luigi Screen
 SB_MARIO_LUIGI_SCREEN_TO_NEXT EQU $60
-; master can also send a byte for high chosen
+; master/passive can also send a byte for high chosen
 
-;
+; Winner/Loser screen
+SB_WINNER_LOSER_SCREEN_TO_NEXT EQU $60
+
+; in-demo
+SB_PASSIVE_PING_IN_DEMO EQU $00
 SB_ENDED_GAME_DEMO EQU $33
 
 ; Misc
