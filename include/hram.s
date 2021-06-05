@@ -12,9 +12,8 @@ hff82:
 hVBlankInterruptFinished:: ; $ff85
     db
 
-;
+; visible
 hCurrSpriteSpecStruct:: ; $ff86
-hff86:
     db
 hCurrSpriteSpecBaseY:: ; $ff87
     db
@@ -27,7 +26,7 @@ hCurrSpriteTileIndex:: ; $ff89
 hCurrSpriteSpecIdx:: ; $ff89
     db
     endu
-hff8a:
+hUnusedFF8A:: ;; $ff8a
     db
 hCurrSpecEntireSpecYXFlipped:: ; $ff8b
     db

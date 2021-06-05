@@ -32,3 +32,9 @@ def stringW(ws):
 
 def wordIn(data, offset):
     return (data[offset+1]<<8)|data[offset]
+
+
+def getRom():
+    with open('original/tetris.gb', 'rb') as f:
+        data = f.read()
+    return data

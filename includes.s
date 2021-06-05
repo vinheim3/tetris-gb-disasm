@@ -58,7 +58,6 @@ charmap ",//", $6a
 charmap "_", $ad
 
 charmap "<...>", $60
-charmap "<end>", $ff
 
 newcharmap congrats
 charmap "P", $0d

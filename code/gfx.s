@@ -811,7 +811,7 @@ CopyToShadowOamBasedOnSpriteSpec:
 	ldh  a, [hCurrSpecEntireSpecYXFlipped]                          ; $2b52
 	or   b                                                          ; $2b54
 	ld   b, a                                                       ; $2b55
-	ldh  a, [$8a]                                                   ; $2b56
+	ldh  a, [hUnusedFF8A]                                           ; $2b56
 	or   b                                                          ; $2b58
 	ld   [hl+], a                                                   ; $2b59
 
