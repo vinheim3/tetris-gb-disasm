@@ -1,6 +1,3 @@
-; todo: 2 player code
-
-
 ; file          | done | remaining
 ; bank_000      | 1033 |   0
 ; BType         |  257 |   0
