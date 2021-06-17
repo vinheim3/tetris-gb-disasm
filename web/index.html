@@ -10,7 +10,7 @@
                 <div class="box container is-flex" style="flex-wrap:wrap">
                     <div v-for="screen of screens">
                         <div>{{ screen.name }}</div>
-                        <canvas :id="screen.name+' map'" width="256" height="144"></canvas>
+                        <canvas :id="screen.name+' map'" width="160" height="144"></canvas>
                         <!--canvas :id="screen.name+' data'" width="256" height="96"></canvas-->
                     </div>
                 </div>
@@ -54,7 +54,7 @@
 
                     this.drawBytes(this.memory.slice(0x8000, 0x9800), tiledata_canvas, 32, 32, 12, false);
                     let layoutBytes = this.populateLayout();
-                    this.drawBytes(layoutBytes, tilemap_canvas, 32, 32, 18, screen.isGBC);
+                    this.drawBytes(layoutBytes, tilemap_canvas, 32, 20, 18, screen.isGBC);
                 }
 
                 simpleCopy(addr, dest, numBytes, srcLoc, destLoc) {
