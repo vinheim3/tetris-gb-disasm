@@ -71,7 +71,7 @@ SerialInterruptHandler:
 
 SerialInterruptInner:
 	ldh  a, [hSerialInterruptFunc]                                  ; $006b
-	RST_JumpTable                                                   ; $006d
+	rst  JumpTable                                                  ; $006d
 	dw SerialFunc0_titleScreen
 	dw SerialFunc1_InGame
 	dw SerialFunc2_2PlayerInGame
@@ -581,7 +581,7 @@ MainLoop:
 
 ProcessGameState:
 	ldh  a, [hGameState]                                            ; $02f8
-	RST_JumpTable                                                   ; $02fa
+	rst  JumpTable                                                  ; $02fa
 	dw GameState00_InGameMain
 	dw GameState01_GameOverInit
 	dw GameState02_ShuttleSceneLiftoff

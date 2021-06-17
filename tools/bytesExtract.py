@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import sys
 import clipboard
 from util import conv, bankConv, groupBytes, stringB, stringW

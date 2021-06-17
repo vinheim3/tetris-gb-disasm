@@ -1,30 +1,15 @@
 ; --
-; -- RST
-; --
-
-RST_JumpTable: macro
-    rst $28
-endm
-
-; --
 ; -- Misc
 ; --
-
-dwbe: macro
-    dw (\1>>8)+((\1&$ff)<<8)
-endm
 
 ldbc: macro
     ld bc, (\1<<8)|\2
 endm
 
-; just for the xor a
+; for xor a where 0 can be subbed with a constant
 lda: macro
-if \1 == $00
+ASSERT \1 == $00
     xor a
-else
-    ld a, \1
-endc
 endm
 
 ; --
@@ -61,6 +46,9 @@ DisableEnvelope: macro
 endm
 NextSection: macro
     db $00
+endm
+PlayNoise: macro
+    db \1*5+1
 endm
 
 ; Used in tables containing sound byte addresses
