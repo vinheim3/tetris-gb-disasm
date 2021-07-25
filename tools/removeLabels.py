@@ -5,7 +5,7 @@ print_stats = sys.argv[2] == 'p'
 
 fname = sys.argv[1]
 
-with open(f'code/{fname}.s') as f:
+with open(f'disasm/code/{fname}.s') as f:
     code = f.read()
 
 with open('temp.s', 'w') as f:
@@ -47,5 +47,5 @@ if print_stats:
     print(unchangedLines, changedLines)
 
 else:
-    with open(f'code/{fname}.s', 'w') as f:
+    with open(f'disasm/code/{fname}.s', 'w') as f:
         f.write('\n'.join(comps))

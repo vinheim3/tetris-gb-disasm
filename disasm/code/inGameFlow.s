@@ -675,6 +675,7 @@ ClearPointersToCompletedTetrisRows:
 
 
 CopyRamBufferRow17ToVram:
+; return if it's not time for this row to move down yet
     ldh  a, [hRowsShiftingDownState]                             ; $229e
     cp   ROWS_SHIFTING_DOWN_ROW_START                            ; $22a0
     ret  nz                                                      ; $22a2
@@ -687,7 +688,7 @@ CopyRamBufferRow17ToVram:
 
 CopyRamBufferRow16ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $22ad
-    cp   $03                                                     ; $22af
+    cp   ROWS_SHIFTING_DOWN_ROW_START+1                          ; $22af
     ret  nz                                                      ; $22b1
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*16+2                           ; $22b2
@@ -698,7 +699,7 @@ CopyRamBufferRow16ToVram:
 
 CopyRamBufferRow15ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $22bc
-    cp   $04                                                     ; $22be
+    cp   ROWS_SHIFTING_DOWN_ROW_START+2                          ; $22be
     ret  nz                                                      ; $22c0
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*15+2                           ; $22c1
@@ -709,7 +710,7 @@ CopyRamBufferRow15ToVram:
 
 CopyRamBufferRow14ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $22cb
-    cp   $05                                                     ; $22cd
+    cp   ROWS_SHIFTING_DOWN_ROW_START+3                          ; $22cd
     ret  nz                                                      ; $22cf
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*14+2                           ; $22d0
@@ -720,7 +721,7 @@ CopyRamBufferRow14ToVram:
 
 CopyRamBufferRow13ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $22da
-    cp   $06                                                     ; $22dc
+    cp   ROWS_SHIFTING_DOWN_ROW_START+4                          ; $22dc
     ret  nz                                                      ; $22de
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*13+2                           ; $22df
@@ -731,7 +732,7 @@ CopyRamBufferRow13ToVram:
 
 CopyRamBufferRow12ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $22e9
-    cp   $07                                                     ; $22eb
+    cp   ROWS_SHIFTING_DOWN_ROW_START+5                          ; $22eb
     ret  nz                                                      ; $22ed
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*12+2                           ; $22ee
@@ -742,7 +743,7 @@ CopyRamBufferRow12ToVram:
 
 CopyRamBufferRow11ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $22f8
-    cp   $08                                                     ; $22fa
+    cp   ROWS_SHIFTING_DOWN_ROW_START+6                          ; $22fa
     ret  nz                                                      ; $22fc
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*11+2                           ; $22fd
@@ -781,7 +782,7 @@ CopyRamBufferRow11ToVram:
 
 CopyRamBufferRow10ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $2323
-    cp   $09                                                     ; $2325
+    cp   ROWS_SHIFTING_DOWN_ROW_START+7                          ; $2325
     ret  nz                                                      ; $2327
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*10+2                           ; $2328
@@ -792,7 +793,7 @@ CopyRamBufferRow10ToVram:
 
 CopyRamBufferRow9ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $2332
-    cp   $0a                                                     ; $2334
+    cp   ROWS_SHIFTING_DOWN_ROW_START+8                          ; $2334
     ret  nz                                                      ; $2336
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*9+2                            ; $2337
@@ -803,7 +804,7 @@ CopyRamBufferRow9ToVram:
 
 CopyRamBufferRow8ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $2341
-    cp   $0b                                                     ; $2343
+    cp   ROWS_SHIFTING_DOWN_ROW_START+9                          ; $2343
     ret  nz                                                      ; $2345
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*8+2                            ; $2346
@@ -814,7 +815,7 @@ CopyRamBufferRow8ToVram:
 
 CopyRamBufferRow7ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $2350
-    cp   $0c                                                     ; $2352
+    cp   ROWS_SHIFTING_DOWN_ROW_START+10                         ; $2352
     ret  nz                                                      ; $2354
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*7+2                            ; $2355
@@ -825,7 +826,7 @@ CopyRamBufferRow7ToVram:
 
 CopyRamBufferRow6ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $235f
-    cp   $0d                                                     ; $2361
+    cp   ROWS_SHIFTING_DOWN_ROW_START+11                         ; $2361
     ret  nz                                                      ; $2363
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*6+2                            ; $2364
@@ -836,7 +837,7 @@ CopyRamBufferRow6ToVram:
 
 CopyRamBufferRow5ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $236e
-    cp   $0e                                                     ; $2370
+    cp   ROWS_SHIFTING_DOWN_ROW_START+12                         ; $2370
     ret  nz                                                      ; $2372
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*5+2                            ; $2373
@@ -847,7 +848,7 @@ CopyRamBufferRow5ToVram:
 
 CopyRamBufferRow4ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $237d
-    cp   $0f                                                     ; $237f
+    cp   ROWS_SHIFTING_DOWN_ROW_START+13                         ; $237f
     ret  nz                                                      ; $2381
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*4+2                            ; $2382
@@ -858,7 +859,7 @@ CopyRamBufferRow4ToVram:
 
 CopyRamBufferRow3ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $238c
-    cp   $10                                                     ; $238e
+    cp   ROWS_SHIFTING_DOWN_ROW_START+14                         ; $238e
     ret  nz                                                      ; $2390
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*3+2                            ; $2391
@@ -872,7 +873,7 @@ CopyRamBufferRow3ToVram:
 
 CopyRamBufferRow2ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $239e
-    cp   $11                                                     ; $23a0
+    cp   ROWS_SHIFTING_DOWN_ROW_START+15                         ; $23a0
     ret  nz                                                      ; $23a2
 
     ld   hl, _SCRN0+GB_TILE_WIDTH*2+2                            ; $23a3
@@ -889,7 +890,7 @@ CopyRamBufferRow2ToVram:
 
 CopyRamBufferRow1ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $23b7
-    cp   $12                                                     ; $23b9
+    cp   ROWS_SHIFTING_DOWN_ROW_START+16                         ; $23b9
     ret  nz                                                      ; $23bb
 
     ld   hl, _SCRN0+GB_TILE_WIDTH+2                              ; $23bc
@@ -904,7 +905,7 @@ CopyRamBufferRow1ToVram:
 
 CopyRamBufferRow0ToVram:
     ldh  a, [hRowsShiftingDownState]                             ; $23cc
-    cp   $13                                                     ; $23ce
+    cp   ROWS_SHIFTING_DOWN_ROW_START+17                         ; $23ce
     ret  nz                                                      ; $23d0
 
 ; can make pieces fall again
