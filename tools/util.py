@@ -35,6 +35,6 @@ def wordIn(data, offset):
 
 
 def getRom():
-    with open('original/tetris.gb', 'rb') as f:
+    with open('tools/tetris.gb', 'rb') as f:
         data = f.read()
     return data
