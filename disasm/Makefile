@@ -44,7 +44,7 @@ tetris.gb: $(GFX_1BPP_OBJS) $(GFX_2BPP_OBJS) $(OBJS) $(RAM_OBJS)
 	rgblink $(OUTFILES) -w -o $@ $(OBJS) $(RAM_OBJS)
 	rgbfix -v -p 255 $@
 
-	md5 $@
+	md5sum $@
 
 clean:
 	rm -f tetris.gb tetris.sym tetris.map build/*
