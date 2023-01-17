@@ -16,10 +16,10 @@ OUTFILES = -n tetris.sym -m tetris.map
 
 all: tetris.gb
 
-build//titleScreen.2bpp: gfx//2bpp//titleScreen.png
+build/titleScreen.2bpp: gfx/2bpp/titleScreen.png
 	rgbgfx -o $@ $< -x 9
 
-build//menuScreens.2bpp: gfx//2bpp//menuScreens.png
+build/menuScreens.2bpp: gfx/2bpp/menuScreens.png
 	rgbgfx -o $@ $< -x 11
 
 build/%.2bpp: gfx/2bpp/%.png
