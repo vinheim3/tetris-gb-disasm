@@ -16,10 +16,10 @@ OUTFILES = -n tetris.sym -m tetris.map
 
 all: tetris.gb
 
-build//titleScreen.2bpp: gfx//2bpp//titleScreen.png
+build/titleScreen.2bpp: gfx/2bpp/titleScreen.png
 	rgbgfx -o $@ $< -x 9
 
-build//menuScreens.2bpp: gfx//2bpp//menuScreens.png
+build/menuScreens.2bpp: gfx/2bpp/menuScreens.png
 	rgbgfx -o $@ $< -x 11
 
 build/%.2bpp: gfx/2bpp/%.png
@@ -44,7 +44,7 @@ tetris.gb: $(GFX_1BPP_OBJS) $(GFX_2BPP_OBJS) $(OBJS) $(RAM_OBJS)
 	rgblink $(OUTFILES) -w -o $@ $(OBJS) $(RAM_OBJS)
 	rgbfix -v -p 255 $@
 
-	md5 $@
+	md5sum $@
 
 clean:
 	rm -f tetris.gb tetris.sym tetris.map build/*
