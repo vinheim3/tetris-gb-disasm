@@ -3,7 +3,7 @@
 * Former is used for scripts, and `tools/cmp.sh`, and the latter for web visualisations
 
 # Building
-* Install rgbds v0.5.1
+* Install RGBDS v0.6.1
 * Run `make` within the `disasm` directory
 * Run `tools/cmp.sh` to compare built ROM against original ROM
 
